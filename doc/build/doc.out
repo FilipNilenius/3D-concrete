@@ -1,0 +1,15 @@
+\BOOKMARK [1][-]{section.1}{MATLAB files}{}% 1
+\BOOKMARK [2][-]{subsection.1.1}{SVEGenerator.m [ icon=PushPin, author=SVEGenerator.m, description=doubleclick to open in MATLAB ]//sol.ita.chalmers.se/groups/bom-kt/vcsem/BetongbyggnadKG/Projekt/1047Kloridtransport/bermod/MATLAB/3D/preprocessor/SVEGenerator.m }{section.1}% 2
+\BOOKMARK [2][-]{subsection.1.2}{computeDiffusivity.m [ icon=PushPin, author=computeDiffusivity.m, description=doubleclick to open in MATLAB ]//sol.ita.chalmers.se/groups/bom-kt/vcsem/BetongbyggnadKG/Projekt/1047Kloridtransport/bermod/MATLAB/3D/solvers/computeDiffusivity.m }{section.1}% 3
+\BOOKMARK [2][-]{subsection.1.3}{PreProcessor.m [ icon=PushPin, author=PreProcessor.m, description=doubleclick to open in MATLAB ]//sol.ita.chalmers.se/groups/bom-kt/vcsem/BetongbyggnadKG/Projekt/1047Kloridtransport/bermod/MATLAB/3D/preprocessor/PreProcessor.m }{section.1}% 4
+\BOOKMARK [2][-]{subsection.1.4}{findITZ.m [ icon=PushPin, author=findITZ.m, description=doubleclick to open in MATLAB ]//sol.ita.chalmers.se/groups/bom-kt/vcsem/BetongbyggnadKG/Projekt/1047Kloridtransport/bermod/MATLAB/3D/preprocessor/findITZ.m }{section.1}% 5
+\BOOKMARK [2][-]{subsection.1.5}{LinStatSolver.m [ icon=PushPin, author=LinStatSolver.m, description=doubleclick to open in MATLAB ]//sol.ita.chalmers.se/groups/bom-kt/vcsem/BetongbyggnadKG/Projekt/1047Kloridtransport/bermod/MATLAB/3D/solvers/LinStatSolver.m }{section.1}% 6
+\BOOKMARK [2][-]{subsection.1.6}{LinTransSolver.m [ icon=PushPin, author=LinTransSolver.m, description=doubleclick to open in MATLAB ]//sol.ita.chalmers.se/groups/bom-kt/vcsem/BetongbyggnadKG/Projekt/1047Kloridtransport/bermod/MATLAB/3D/solvers/LinTransSolver.m }{section.1}% 7
+\BOOKMARK [2][-]{subsection.1.7}{StatPostProcessor.m [ icon=PushPin, author=StatPostProcessor.m, description=doubleclick to open in MATLAB ]//sol.ita.chalmers.se/groups/bom-kt/vcsem/BetongbyggnadKG/Projekt/1047Kloridtransport/bermod/MATLAB/3D/postprocessor/StatPostProcessor.m }{section.1}% 8
+\BOOKMARK [2][-]{subsection.1.8}{TransPostProcessor.m [ icon=PushPin, author=TransPostProcessor.m, description=doubleclick to open in MATLAB ]//sol.ita.chalmers.se/groups/bom-kt/vcsem/BetongbyggnadKG/Projekt/1047Kloridtransport/bermod/MATLAB/3D/postprocessor/TransPostProcessor.m }{section.1}% 9
+\BOOKMARK [1][-]{section.2}{Element node numbering}{}% 10
+\BOOKMARK [1][-]{section.3}{ITZ implementation}{}% 11
+\BOOKMARK [2][-]{subsection.3.1}{Line-sphere intersection}{section.3}% 12
+\BOOKMARK [2][-]{subsection.3.2}{Voigt assumption}{section.3}% 13
+\BOOKMARK [3][-]{subsubsection.3.2.1}{Isotropic}{subsection.3.2}% 14
+\BOOKMARK [3][-]{subsubsection.3.2.2}{Anisotropic}{subsection.3.2}% 15
