@@ -3,7 +3,7 @@
 ![alt tag](https://raw.githubusercontent.com/FilipNilenius/3D-concrete/master/logo1.png)
 ![alt tag](https://raw.githubusercontent.com/FilipNilenius/3D-concrete/master/logo2.png)
 
-<img src="https://raw.githubusercontent.com/FilipNilenius/3D-concrete/master/logo2.png" alt="alt text" style="width:100px;height:auto">
+<img src="https://raw.githubusercontent.com/FilipNilenius/3D-concrete/master/logo2.png" alt="alt text" style="width:10px;height:auto">
 
 Numerical model of heterogeneous concrete in 3D for finite element analysis of transport- and mechanical problems, and computational homogenization.
 
