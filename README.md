@@ -4,4 +4,5 @@ Numerical model of heterogeneous concrete in 3D for finite element analysis of t
 The model has been published here:
 
 https://dx.doi.org/10.1007/s00466-014-0998-0
+
 https://dx.doi.org/10.1007/s00466-014-1105-2
