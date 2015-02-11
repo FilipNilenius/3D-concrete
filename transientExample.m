@@ -3,7 +3,7 @@
 % Results are written to vtk-files.
 % You need Paraview to visualize the results.
 %
-% The example takes approx. XX min. to run.
+% The example takes approx. 5 min. to run.
 %
 % http://www.paraview.org/
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
