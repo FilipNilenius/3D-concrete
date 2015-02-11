@@ -5,7 +5,6 @@ classdef SVEclass < handle
     % and transient conditions.
     %
     % Written by Filip Nilenius, May 2013
-    % Last edited on 2013-05-24
     %
     %
     % SVEclass methods:
@@ -28,28 +27,31 @@ classdef SVEclass < handle
     %   - a = LinStatSolver(H,obj.sliceVector):
     %         Returns nodal vector 'a'.
     %
-    %   - homoDiffRow = StatPostProcessor(obj,a,obj.sliceVector,varargin):
+    %   - homoDiffRow = StatPostProcessor(a,obj.sliceVector,varargin):
     %         Computes homogenized diffusivity tensor components. If
     %         'varargin' exists, vector field is written to VTK.file (which
     %         requires a 'Topology_XX_X.vtk'-file.
     %
-    %   - LinTransSolver(obj,initialCondition,time,ambHum,convCoeff):
+    %   - LinTransSolver(initialCondition,time,ambHum,convCoeff):
     %         Solves transient system. Returns nodal vector 'a'.
     %
-    %   - TransPostProcessor(obj):
+    %   - TransPostProcessor():
     %         Writes transient solution to VTK-file.
     %
-    %   - [spatialDirection,slicedPlane] = plotTransientFront(obj):
+    %   - [spatialDirection,slicedPlane] = plotTransientFront():
     %         Plots transient front for all time steps.
     %
-    %   - a = LinElasticitySolver(obj):
+    %   - a = LinElasticitySolver():
     %         solves linear elasticity problem with Dirichlet BC. returns
     %         solution vector 'a'.
     %
-    %   - getElasticityProperties(obj):
+    %   - getElasticityProperties():
     %         computes mesh data for elasticity given a mesh for
     %         diffusivity. Should only be used for existing mesh data that
     %         was done before elasticity was implemented.
+    %
+    %   - computeEffectiveDiffusivtyTensor():
+    %         computes effective diffusivity tensor of SVE. 
     %----------------------------------------------------------------------
     properties
         % user defined
@@ -58,11 +60,10 @@ classdef SVEclass < handle
         Lbox
         nx
         transientName
-        nGaussPoints
+        nGaussPoints = 2
         strainIncrement
         endLoadStep = 1000;
         startLoadStep
-        sliceVector
         residualTOL = 1e-3
         
         % set by constructor
@@ -76,13 +77,13 @@ classdef SVEclass < handle
     methods(Access = public)
         % constructor
         function obj = SVEclass()
-            obj.convCoeff.x.back  = inf;
+            obj.convCoeff.x.back  = 100;
             obj.convCoeff.x.front = inf;
-            obj.convCoeff.y.back  = inf;
+            obj.convCoeff.y.back  = 100;
             obj.convCoeff.y.front = inf;
-            obj.convCoeff.z.back  = inf;
+            obj.convCoeff.z.back  = 100;
             obj.convCoeff.z.front = inf;
-
+            
             obj.ambHum.x.back  = 0;
             obj.ambHum.x.front = 0;
             obj.ambHum.y.back  = 0;
@@ -95,20 +96,26 @@ classdef SVEclass < handle
             obj.H.grad(2) =  0;
             obj.H.grad(3) =  0;
             
-            obj.sliceVector = 1;
-            
             obj.transientName = 'defaultName';
         end
         
         % set objective's path on server
-        function obj = setPath(obj)
-            obj.path2Realization = [pwd,'/SVEs/Lbox_',num2str(obj.Lbox),'/aggFrac_',num2str(obj.aggFrac*100),'/Realization_',num2str(obj.realizationNumber)];
-            addpath(obj.path2Realization);
-            addpath([pwd,'/misc']);
+        function obj = setPath(obj,varargin)
+            if nargin == 1
+                Root = pwd;
+            else
+                Root = varargin{1};
+            end
+            
+            obj.path2Realization = [Root,'/SVEs/Lbox_',num2str(obj.Lbox),'/aggFrac_',num2str(obj.aggFrac*100),'/Realization_',num2str(obj.realizationNumber),'/'];
+            
+            if ~exist(obj.path2Realization, 'dir')
+                mkdir(obj.path2Realization);
+            end
         end
         
         % generate SVE and meshing
-        function generateSVE(aggFrac,ballastRadii,gravelSieve,Lbox,domainFactor)
+        function generateSVE(obj,aggFrac,ballastRadii,gravelSieve,Lbox,domainFactor)
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Generates 3D mesocale structure of concrete
             %    
@@ -162,11 +169,9 @@ classdef SVEclass < handle
 
 
             % Saves SVE data
-            savefile = ['SVEparameters_',num2str(obj.realizationNumber),'.mat'];
+            savefile = [obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'];
             save(savefile,'centroid','radius','Lbox','domainFactor','ballastRadii','gravelSieve','aggFrac');
-
-            % Moves generated topology files to output folder
-            movefile(['SVEparameters_',num2str(obj.realizationNumber),'.mat'],obj.path2Realization);
+            
         end
         function obj = meshSVE(obj)
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -177,7 +182,7 @@ classdef SVEclass < handle
             % Last edited on: 2013-08-12
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             tic
-            load(['SVEparameters_',num2str(obj.realizationNumber),'.mat'])
+            load([obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'])
             nx = obj.nx;
             dx = obj.Lbox/(nx-1);
             ny = nx;
@@ -304,9 +309,12 @@ classdef SVEclass < handle
             sparseVec.j = reshape(sparseVec.j',meshProperties.nel*8*8,1);
             
             % Write topology matrices to .mat-VoxelCoordss
-            saveVoxelCoords = ['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'];
+            saveVoxelCoords = [obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'];
             save(saveVoxelCoords,'elementMaterial','Edof','BEdof','sparseVec','NodeCoords','BoundaryNodes','meshProperties','interfaceVoxel','-v7.3');
-            movefile(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],obj.path2Realization);
+            
+            % determine mesh properties pertaining to elasticity
+            obj.getElasticityProperties();
+            obj.getBoundaryElements();
             toc
         end
         function writeTopology(obj)
@@ -316,8 +324,8 @@ classdef SVEclass < handle
             % Written by Filip Nilenius, 2012-01-24
             % Last edited on: 2013-08-21
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            load (['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat']);
-            fid = fopen(['Topology_',num2str(meshProperties.nx),'_',num2str(obj.realizationNumber),'.vtk'], 'w');
+            load ([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat']);
+            fid = fopen([obj.path2Realization,'Topology_',num2str(meshProperties.nx),'_',num2str(obj.realizationNumber),'.vtk'], 'w');
             fprintf(fid,'# vtk DataFile Version 2.0\n');
             fprintf(fid,'Created on %s\n',datestr(now, 'yyyy-mm-dd'));
             fprintf(fid,'ASCII\n');
@@ -337,16 +345,37 @@ classdef SVEclass < handle
             fprintf(fid,'LOOKUP_TABLE default\n');
             fprintf(fid,'%d\n',Edof(:,1));
             fclose(fid);
-            movefile(['Topology_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.vtk'],obj.path2Realization);
         end
-        function [numAggFrac numArea] = computeAggFracandITZarea(obj)
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel','Edof','meshProperties')
+        function [numAggFrac, numArea] = computeAggFracandITZarea(obj)
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel','Edof','meshProperties')
             numAggFrac = 1 - (length(Edof(Edof(:,1)==0))*meshProperties.dx^3 + sum(interfaceVoxel.volume.cement))/obj.Lbox^3;
             numArea = sum(interfaceVoxel.area.ITZ);
         end
         
         % stationary analysis
-        function a = LinStatSolver(obj,varargin)
+        function computeEffectiveDiffusivtyTensor(obj)
+            D = zeros(3,3);
+            for i=1:3
+                if i == 1
+                    obj.H.grad(1) = -1;
+                    obj.H.grad(2) =  0;
+                    obj.H.grad(3) =  0;
+                elseif i ==2
+                    obj.H.grad(1) =  0;
+                    obj.H.grad(2) = -1;
+                    obj.H.grad(3) =  0;
+                else
+                    obj.H.grad(1) =  0;
+                    obj.H.grad(2) =  0;
+                    obj.H.grad(3) = -1;
+                end
+                D(:,i) = obj.LinStatSolver();
+            end
+            disp(' ')
+            disp('effective diffusivity tensor:')
+            disp(D)
+        end
+        function homoDiffRow = LinStatSolver(obj,varargin)
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Solves the linear system Ka=f for a 3D mesostructure 
         % of concrete. Dirichlet BC are implemented. Function is adapted for both
@@ -357,19 +386,39 @@ classdef SVEclass < handle
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
         % Load topology
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'elementMaterial')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'sparseVec');
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'BoundaryNodes')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'elementMaterial')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'sparseVec');
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'BoundaryNodes')
         
+        
+        crackDiffusivityTensor = cell(meshProperties.nel,1);
+        [crackDiffusivityTensor{:}] = deal(zeros(3));
         
         % load step solution if given as input
         nVarargs = length(varargin);
         if nVarargs == 1
             load([obj.path2Realization,'/solution_',num2str(obj.nx),'/timeStepSolution_',num2str(obj.nx),'_',num2str(varargin{1}),'.mat'])
+            
+            
+            % compute crack widths in damaged elements
+            
+            [damegedElements test] = find(currentDamage > 0);
+            elementCrackWidth = zeros(meshProperties.nel,1);
+            
+            
+            for i = damegedElements'
+                elementCrackWidth(i) = meshProperties.dx*maxPrincipalStrain.eigenvalue(i)*currentDamage(i);
+            end
+            
+            max(elementCrackWidth)
+
+            for iel = damegedElements'
+                crackDiffusivityTensor{iel} = elementCrackArea(iel)*elementCrackWidth(iel)*cement.crackDiffusivity/(meshProperties.dx^3)*(eye(3) - maxPrincipalStrain.eigenvector(:,iel)*maxPrincipalStrain.eigenvector(:,iel)');
+            end
         end
         
         
@@ -377,125 +426,80 @@ classdef SVEclass < handle
         cement  = cementClass;
         ballast = ballastClass;
         ITZ     = ITZClass;
-
+        
         % f = sparse(meshProperties.ndof,1);
         [ex_in,ey_in,ez_in] = obj.prepareKe(meshProperties.dx);
         [B,detJ,wp] = computeBmatrix(ex_in,ey_in,ez_in,obj.nGaussPoints);
         
-        if length(obj.sliceVector)>1 % 2D
-            aStored = zeros(meshProperties.ndof,length(obj.sliceVector));
-        else % 3D
-            aStored = zeros(meshProperties.ndof.diffusion,1);
+        
+        X = zeros(meshProperties.nel*8,8);
+
+        tic
+        for iel=1:meshProperties.nel
+            if elementMaterial(iel) == 2 % ITZ
+                diffusionTensor = constitutiveModel(cement,ballast,ITZ,iel,interfaceVoxel,crackDiffusivityTensor{iel});
+            elseif elementMaterial(iel) == 1 % Ballast
+                diffusionTensor = ballast.diffusionCoefficient*eye(3);
+            elseif elementMaterial(iel) == 0 % Cement
+                diffusionTensor = cement.diffusionCoefficient*eye(3) + crackDiffusivityTensor{iel};
+            end
+            X((iel*8-7):iel*8,:) = computeKe(2,wp,detJ,B,diffusionTensor);
         end
-        
-        % compute crack widths in damaged elements
-        [damegedElements test] = find(currentDamage > 0);
-        elementCrackWidth = zeros(meshProperties.nel,1);
-        
-        
-        for i = damegedElements'
-            elementCrackWidth(i) = meshProperties.dx*maxPrincipalStrain.eigenvalue(i)*currentDamage(i);
-        end
-        
-        max(elementCrackWidth)
-        
-        crackDiffusivityTensor = cell(meshProperties.nel,1);
-        [crackDiffusivityTensor{:}] = deal(zeros(3));
-        for iel = damegedElements'
-            crackDiffusivityTensor{iel} = elementCrackArea(iel)*elementCrackWidth(iel)*cement.crackDiffusivity/(meshProperties.dx^3)*(eye(3) - maxPrincipalStrain.eigenvector(:,iel)*maxPrincipalStrain.eigenvector(:,iel)');
-%             crackDiffusivityTensor{iel} = elementCrackArea(iel)*elementCrackWidth(iel)^3/12/8.9000e-08/(meshProperties.dx^3)*(eye(3) - maxPrincipalStrain.eigenvector(:,iel)*maxPrincipalStrain.eigenvector(:,iel)');
-        end
-        
-        kkk = 0;
-        for iSlice = obj.sliceVector
-            kkk = kkk + 1;
-            X = zeros(meshProperties.nel*8,8);
-            
-            tic
-            for iel=1:meshProperties.nel
-
-        %         if iel <= iSlice*(meshProperties.nx-1)^2 || iel >= (iSlice+1)*(meshProperties.nx-1)^2+1 % 2D
-        %             Ke = 0*Kee;
-        %         else
-                if elementMaterial(iel) == 2 % ITZ
-                    diffusionTensor = constitutiveModel(cement,ballast,ITZ,iel,interfaceVoxel,crackDiffusivityTensor{iel});
-                elseif elementMaterial(iel) == 1 % Ballast
-                    diffusionTensor = ballast.diffusionCoefficient*eye(3);
-                elseif elementMaterial(iel) == 0 % Cement
-                    diffusionTensor = cement.diffusionCoefficient*eye(3) + crackDiffusivityTensor{iel};
-                end
-                
-        %         end
-                
-                X((iel*8-7):iel*8,:) = computeKe(2,wp,detJ,B,diffusionTensor);
-            end
-            assemblingK = toc;
-            if assemblingK > 60 && assemblingK < 60*60
-                disp(['assembling K in ',num2str(assemblingK/60),' minutes, finished on ', datestr(now)])
-            elseif assemblingK >= 60*60
-                disp(['assembling K in ',num2str(assemblingK/60/60),' hours, finished on ', datestr(now)])
-            else
-                disp(['assembling K in ',num2str(assemblingK),' seconds, finished on ', datestr(now)])
-            end
-
-            if length(obj.sliceVector)==1 % 3D
-                clear Edof;
-                clear interfaceVoxel;
-            end
-            
-            X = reshape(X',meshProperties.nel*8*8,1);
-            K.full = sparse2(sparseVec.i,sparseVec.j,X,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
-
-            if length(obj.sliceVector)==1
-                clear sparseVec;
-            end
-
-            clear X;
-
-
-            % Computes Dirichlet B.C. based on grad(v^M)
-            a = zeros(meshProperties.ndof.diffusion,1);
-            a(BoundaryNodes) = obj.H.grad(1)*(NodeCoords(BoundaryNodes,2) - 0.5*obj.Lbox) +...
-                               obj.H.grad(2)*(NodeCoords(BoundaryNodes,3) - 0.5*obj.Lbox) +...
-                               obj.H.grad(3)*(NodeCoords(BoundaryNodes,4) - 0.5*obj.Lbox) +...
-                               obj.H.bar;
-                           
-                           
-            if length(obj.sliceVector)==1 % 3D
-                clear NodeCoords;
-            end
-
-            % Condensates the system due to ballast dofs
-            [dofs.cement.all col] = find(diag(K.full)~=0);
-            dofs.cement.prescribed = intersect(BoundaryNodes,dofs.cement.all);
-            dofs.cement.free = setdiff(dofs.cement.all,dofs.cement.prescribed);
-            K.fp = K.full(dofs.cement.free,dofs.cement.prescribed);
-            K.ff = K.full(dofs.cement.free,dofs.cement.free);
-            clear K.full;
-            
-            
-            % Solves equation system using iterative solver
-            tic
-            a(dofs.cement.free) = minres(K.ff,-K.fp*a(dofs.cement.prescribed),[],70000,[],[],[]);
-            solveK = toc;
-            
-            if solveK > 60 && solveK < 60*60
-               disp(['solving Ka=f in ',num2str(solveK/60),' minutes'])
-            elseif assemblingK >= 60*60
-               disp(['solving Ka=f in ',num2str(solveK/60/60),' hours'])
-            else
-               disp(['solving Ka=f in ',num2str(solveK),' seconds'])
-            end
-            
-            if length(obj.sliceVector)>1 % 2D
-                aStored(:,kkk) = a;
-            end
+        assemblingK = toc;
+        if assemblingK > 60 && assemblingK < 60*60
+            disp(['assembling K in ',num2str(assemblingK/60),' minutes, finished on ', datestr(now)])
+        elseif assemblingK >= 60*60
+            disp(['assembling K in ',num2str(assemblingK/60/60),' hours, finished on ', datestr(now)])
+        else
+            disp(['assembling K in ',num2str(assemblingK),' seconds, finished on ', datestr(now)])
         end
 
-        if length(obj.sliceVector)>1 % 2D
-            a = aStored;
+        clear Edof;
+        clear interfaceVoxel;
+
+        X = reshape(X',meshProperties.nel*8*8,1);
+        K.full = sparse2(sparseVec.i,sparseVec.j,X,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
+
+        clear sparseVec;
+        clear X;
+
+
+        % Computes Dirichlet B.C. based on grad(v^M)
+        a = zeros(meshProperties.ndof.diffusion,1);
+        a(BoundaryNodes) = obj.H.grad(1)*(NodeCoords(BoundaryNodes,2) - 0.5*obj.Lbox) +...
+                           obj.H.grad(2)*(NodeCoords(BoundaryNodes,3) - 0.5*obj.Lbox) +...
+                           obj.H.grad(3)*(NodeCoords(BoundaryNodes,4) - 0.5*obj.Lbox) +...
+                           obj.H.bar;
+
+        clear NodeCoords;
+
+        % Condensates the system due to ballast dofs
+        [dofs.cement.all, col] = find(diag(K.full)~=0);
+        dofs.cement.prescribed = intersect(BoundaryNodes,dofs.cement.all);
+        dofs.cement.free = setdiff(dofs.cement.all,dofs.cement.prescribed);
+        K.fp = K.full(dofs.cement.free,dofs.cement.prescribed);
+        K.ff = K.full(dofs.cement.free,dofs.cement.free);
+        clear K.full;
+
+
+        % Solves equation system using iterative solver
+        tic
+        a(dofs.cement.free) = minres(K.ff,-K.fp*a(dofs.cement.prescribed),[],70000,[],[],[]);
+        solveK = toc;
+
+        if solveK > 60 && solveK < 60*60
+           disp(['solving Ka=f in ',num2str(solveK/60),' minutes'])
+        elseif assemblingK >= 60*60
+           disp(['solving Ka=f in ',num2str(solveK/60/60),' hours'])
+        else
+           disp(['solving Ka=f in ',num2str(solveK),' seconds'])
         end
-        obj.StatPostProcessor(a,currentDamage,maxPrincipalStrain,elementCrackArea)
+            
+        if nVarargs == 1
+            homoDiffRow = obj.StatPostProcessor(a,currentDamage,maxPrincipalStrain,elementCrackArea);
+        else
+            homoDiffRow = obj.StatPostProcessor(a);
+        end
         end
         function homoDiffRow = StatPostProcessor(obj,a,currentDamage,maxPrincipalStrain,elementCrackArea,varargin)
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -506,92 +510,78 @@ classdef SVEclass < handle
         % Last edited on: 2013-03-04
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
+        nVarargs = length(varargin);
         % Load topology
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'elementMaterial')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'elementMaterial')
         
         % create material objects
         cement = cementClass;
         ballast = ballastClass;
         ITZ = ITZClass;
         
-        
-        % compute crack widths in damaged elements
-        [damegedElements test] = find(currentDamage > 0);
-        elementCrackWidth = zeros(meshProperties.nel,1);
-        
-        
-        for i = damegedElements'
-            elementCrackWidth(i) = meshProperties.dx*maxPrincipalStrain.eigenvalue(i)*currentDamage(i);
-        end
-        
         crackDiffusivityTensor = cell(meshProperties.nel,1);
         [crackDiffusivityTensor{:}] = deal(zeros(3));
-        for iel = damegedElements'
-            crackDiffusivityTensor{iel} = elementCrackArea(iel)*elementCrackWidth(iel)*cement.crackDiffusivity/(meshProperties.dx^3)*(eye(3) - maxPrincipalStrain.eigenvector(:,iel)*maxPrincipalStrain.eigenvector(:,iel)');
-%             crackDiffusivityTensor{iel} = elementCrackArea(iel)*elementCrackWidth(iel)^3/12/8.9000e-08/(meshProperties.dx^3)*(eye(3) - maxPrincipalStrain.eigenvector(:,iel)*maxPrincipalStrain.eigenvector(:,iel)');
+        
+        
+        if nVarargs ~= 0
+            % compute crack widths in damaged elements
+            [damegedElements test] = find(currentDamage > 0);
+            elementCrackWidth = zeros(meshProperties.nel,1);
+        
+            for i = damegedElements'
+                elementCrackWidth(i) = meshProperties.dx*maxPrincipalStrain.eigenvalue(i)*currentDamage(i);
+            end
+            
+            for iel = damegedElements'
+                crackDiffusivityTensor{iel} = elementCrackArea(iel)*elementCrackWidth(iel)*cement.crackDiffusivity/(meshProperties.dx^3)*(eye(3) - maxPrincipalStrain.eigenvector(:,iel)*maxPrincipalStrain.eigenvector(:,iel)');
+            end
         end
         
         % Computes flux in Gauss-points
         [ex_in,ey_in,ez_in] = obj.prepareKe(meshProperties.dx);
         [B] = computeBmatrix(ex_in,ey_in,ez_in,2);
 
-        es_Store = zeros(length(Edof),3);
-
-        if length(obj.sliceVector)>1 % 2D
-            aStored = a;
-            homoDiffRow = zeros(3,length(obj.sliceVector));
-        end
-
-
-        kkk = 0;
-        for iSlice = obj.sliceVector
-            k = 0;
-            kkk = kkk + 1;
-
-            if length(obj.sliceVector)>1 % 2D
-                a = aStored(:,kkk);
-                es_Store = zeros((meshProperties.nx-1)^2,3);
+        es_Store = zeros(meshProperties.nel,3);
+        
+        for iel=1:meshProperties.nel
+            if elementMaterial(iel) == 2 % ITZ
+                diffusionTensor = constitutiveModel(cement,ballast,ITZ,iel,interfaceVoxel,crackDiffusivityTensor{iel});
+            elseif elementMaterial(iel) == 1 % Ballast
+                diffusionTensor = ballast.diffusionCoefficient*eye(3);
+            elseif elementMaterial(iel) == 0 % Cement
+                diffusionTensor = cement.diffusionCoefficient*eye(3) + crackDiffusivityTensor{iel};
             end
 
+            ed = a(Edof(iel,2:end))';
 
-            for iel=1:meshProperties.nel % 3D
-%             for iel=iSlice*(meshProperties.nx-1)^2+1:(iSlice+1)*(meshProperties.nx-1)^2 
-                k = k + 1;
-                if elementMaterial(iel) == 2 % ITZ
-                    diffusionTensor = constitutiveModel(cement,ballast,ITZ,iel,interfaceVoxel,crackDiffusivityTensor{iel});
-                elseif elementMaterial(iel) == 1 % Ballast
-                    diffusionTensor = ballast.diffusionCoefficient*eye(3);
-                elseif elementMaterial(iel) == 0 % Cement
-                    diffusionTensor = cement.diffusionCoefficient*eye(3) + crackDiffusivityTensor{iel};
-                end
-                
-                ed = a(Edof(iel,2:end))';
-                
-                elementFlux = zeros(3,1);
-                for ii=1:(obj.nGaussPoints)^3
-                    elementFlux = elementFlux + -diffusionTensor*B.gaussPoint{ii}*ed';
-                end
-                
-                es_Store(k,:) = elementFlux/(obj.nGaussPoints)^3;
+            elementFlux = zeros(3,1);
+            for ii=1:(obj.nGaussPoints)^3
+                elementFlux = elementFlux + -diffusionTensor*B.gaussPoint{ii}*ed';
             end
-            homoDiffRow(:,kkk) = mean(es_Store)';
-        end
 
-        if length(obj.sliceVector)>1 % 2D
-            homoDiffRow = mean(homoDiffRow');
+            es_Store(iel,:) = elementFlux/(obj.nGaussPoints)^3;
         end
+        homoDiffRow = mean(es_Store)';
+            
         
         % Write vector field to vtk-file
-%         writeVectorField(obj,es_Store,meshProperties.ndof,a,obj.path2Realization,obj.realizationNumber,obj.nx);
+        if obj.H.bar(1) ~0
+            writeVectorField(obj,es_Store,meshProperties.ndof,a,obj.path2Realization,obj.realizationNumber,obj.nx);
+        end
 
         function writeVectorField(obj,es_Store,ndof,a,path2Realization,iRealization,nx)
         
         % Writes 3D structure data to .vtk-file
-        fid = fopen('solution_I=0.vtk', 'w');
-        s = fileread(['Topology_',num2str(nx),'_',num2str(iRealization),'.vtk']);
+        fid = fopen([obj.path2Realization,'solution_I=0.vtk'], 'w');
+        
+        try
+            s = fileread([obj.path2Realization,'Topology_',num2str(nx),'_',num2str(iRealization),'.vtk']);
+        catch
+            error('You first need to invoke the ''writeTopology()'' method.')
+        end
         fprintf(fid,'%s',s);
         fprintf(fid, 'VECTORS vectors float\n');
         fprintf(fid, '%d %d %d\n',es_Store');
@@ -601,7 +591,6 @@ classdef SVEclass < handle
         fprintf(fid, 'LOOKUP_TABLE default\n');
         fprintf(fid, '%d\n',a);
         fclose(fid);
-        movefile('solution_I=0.vtk',path2Realization);
         end
         end
         function diffTensorFunctionOfStrain(obj,strainVectorinput)
@@ -642,7 +631,7 @@ classdef SVEclass < handle
         % transient analysis
         function LinTransSolver(obj,initialCondition,time)
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            % Solves the linear system Cå+Ka=f for a 3D mesostrucutre 
+            % Solves the linear system C?+Ka=f for a 3D mesostrucutre 
             % of concrete. Robin type BC are implemented.
             %
             % % Convective coefficients and ambient humidities for all surfaces
@@ -655,11 +644,17 @@ classdef SVEclass < handle
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
             % Load topology
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'BEdof')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'sparseVec');
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'BEdof')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'sparseVec');
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'elementMaterial')
+            
+            % create material objects
+            cement  = cementClass;
+            ballast = ballastClass;
+            ITZ     = ITZClass;
             
             convCoeff = obj.convCoeff;
             ambHum = obj.ambHum;
@@ -676,32 +671,35 @@ classdef SVEclass < handle
             Kee = obj.flw3i8e(ex_in,ey_in,ez_in,2,eye(3),2);
             Cee = obj.Ce_3D(ex_in,ey_in,ez_in,3,10);
             
+            crackDiffusivityTensor = cell(meshProperties.nel,1);
+            [crackDiffusivityTensor{:}] = deal(zeros(3));
+            
 
             % Assemble K and C
             X.K = zeros(meshProperties.nel*8,8);
             X.C = zeros(meshProperties.nel*8,8);
+            
             for iel=1:meshProperties.nel
-                [D] = constitutiveModel(Edof(iel,1),iel,interfaceVoxel);
-                if Edof(iel,1)==2 % ITZ
-                    Ke = computeKe(2,wp,detJ,B,D);
+                if elementMaterial(iel) == 2 % ITZ
+                    diffusionTensor = constitutiveModel(cement,ballast,ITZ,iel,interfaceVoxel,crackDiffusivityTensor{iel});
                     Ce = Cee;
-                elseif Edof(iel,1)==1 % Ballast
-                    Ke = D.ballast*Kee;
+                elseif elementMaterial(iel) == 1 % Ballast
+                    diffusionTensor = ballast.diffusionCoefficient*eye(3);
                     Ce = 0*Cee;
-                elseif Edof(iel,1)==0 % Cement
-                    Ke = D.cement*Kee;
+                elseif elementMaterial(iel) == 0 % Cement
+                    diffusionTensor = cement.diffusionCoefficient*eye(3) + crackDiffusivityTensor{iel};
                     Ce = Cee;
                 end
-                X.K((iel*8-7):iel*8,:) = Ke;
+                X.K((iel*8-7):iel*8,:) = computeKe(2,wp,detJ,B,diffusionTensor);
                 X.C((iel*8-7):iel*8,:) = Ce;
             end
             
             X.K  = reshape(X.K',meshProperties.nel*8*8,1);
             X.C  = reshape(X.C',meshProperties.nel*8*8,1);
             
-            K = sparse2(sparseVec.i,sparseVec.j,X.K,meshProperties.ndof,meshProperties.ndof);
-            C = sparse2(sparseVec.i,sparseVec.j,X.C,meshProperties.ndof,meshProperties.ndof);
-            f = sparse2(meshProperties.ndof,1);
+            K = sparse2(sparseVec.i,sparseVec.j,X.K,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
+            C = sparse2(sparseVec.i,sparseVec.j,X.C,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
+            f = sparse2(meshProperties.ndof.diffusion,1);
 
             % Adds convective contribution to K and builds f
             for i=1:length(BEdof.x.back.Edof)
@@ -742,7 +740,7 @@ classdef SVEclass < handle
             
             
             % Time iteration
-            a_store = zeros(meshProperties.ndof,time.steps);
+            a_store = zeros(meshProperties.ndof.diffusion,time.steps);
             a_store(CPdofs,1) = initialCondition;
             for i=1:time.steps
                 a_new = minres(C + time.stepsize*K,C*a_old + time.stepsize*f,[],70000,[],[],a_old);
@@ -752,9 +750,8 @@ classdef SVEclass < handle
 
 
             % Saves solution vector 'a' to file.
-            savefile = [obj.transientName,'.mat'];
+            savefile = [obj.path2Realization,obj.transientName,'.mat'];
             save(savefile,'a_store');
-            movefile([obj.transientName,'.mat'],obj.path2Realization);
 
         end
         function TransPostProcessor(obj)
@@ -767,12 +764,23 @@ classdef SVEclass < handle
             % Last edited on: 2013-05-27
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
-            load([obj.transientName,'.mat']);
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'BEdof')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'elementMaterial')
+            load([obj.path2Realization,obj.transientName,'.mat']);
             
-            [ff nts] = size(a_store); 
+            [ff,nts] = size(a_store); 
+            
+            
+            % create material objects
+            cement  = cementClass;
+            ballast = ballastClass;
+            ITZ     = ITZClass;
+            
+            crackDiffusivityTensor = cell(meshProperties.nel,1);
+            [crackDiffusivityTensor{:}] = deal(zeros(3));
             
             % Computes flux in Gauss-points
             [ex_in,ey_in,ez_in] = obj.prepareKe(meshProperties.dx);
@@ -780,31 +788,40 @@ classdef SVEclass < handle
 
 
             for i=1:nts
+                
+                es_Store = zeros(meshProperties.nel,3);
                 % Computes flux in Gauss-points
-                es_Store = zeros(length(Edof),3);
-                k = 0;
                 for iel=1:meshProperties.nel
-                    k = k + 1;
-                    [D] = constitutiveModel(Edof(iel,1),iel,interfaceVoxel);
+                    if elementMaterial(iel) == 2 % ITZ
+                        diffusionTensor = constitutiveModel(cement,ballast,ITZ,iel,interfaceVoxel,crackDiffusivityTensor{iel});
+                    elseif elementMaterial(iel) == 1 % Ballast
+                        diffusionTensor = ballast.diffusionCoefficient*eye(3);
+                    elseif elementMaterial(iel) == 0 % Cement
+                        diffusionTensor = cement.diffusionCoefficient*eye(3) + crackDiffusivityTensor{iel};
+                    end
+
                     ed = a_store(Edof(iel,2:end),i)';
-                    elementFlux = -D.voxel*B.tot*ed'/length(B.tot);
-                    es_Store(k,:) = elementFlux';
+
+                    elementFlux = zeros(3,1);
+                    for ii=1:(obj.nGaussPoints)^3
+                        elementFlux = elementFlux + -diffusionTensor*B.gaussPoint{ii}*ed';
+                    end
+
+                    es_Store(iel,:) = elementFlux/(obj.nGaussPoints)^3;
                 end
                 
-
                 % Writes 3D structure data to .vtk-file
-                fid = fopen([obj.transientName,'_',int2str(i),'.vtk'], 'w');
-                s = fileread(['Topology_',num2str(meshProperties.nx),'_',num2str(obj.realizationNumber),'.vtk']);
+                fid = fopen([obj.path2Realization,obj.transientName,'_',int2str(i-1),'.vtk'], 'w');
+                s = fileread([obj.path2Realization,'Topology_',num2str(meshProperties.nx),'_',num2str(obj.realizationNumber),'.vtk']);
                 fprintf(fid,'%s',s);
                 fprintf(fid, 'VECTORS vectors float\n');
                 fprintf(fid, '%d %d %d\n',es_Store');
                 fprintf(fid, '\n');
-                fprintf(fid, 'POINT_DATA %d\n',meshProperties.ndof);
+                fprintf(fid, 'POINT_DATA %d\n',meshProperties.ndof.diffusion);
                 fprintf(fid, 'SCALARS stat float 1\n');
                 fprintf(fid, 'LOOKUP_TABLE default\n');
                 fprintf(fid, '%d\n',a_store(:,i));
                 fclose(fid);
-                movefile([obj.transientName,'_',int2str(i),'.vtk'],obj.path2Realization);
                 disp(['Number of time steps left: ',num2str(nts-i)])
             end
         end
@@ -1348,10 +1365,10 @@ classdef SVEclass < handle
         % Computes EdofElasticity (and more) and saves to existing
         % .mat-file.
 
-        load(['SVEparameters_',num2str(obj.realizationNumber),'.mat'])
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
+        load([obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'])
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
         
         elementMaterial = Edof(:,1);
         nx = obj.nx;
@@ -1505,15 +1522,15 @@ classdef SVEclass < handle
         % Determines 2D boundary elements along all faces
         [boundaryDofs] = obj.findBoundaryDofs(NodeCoords,Nodedofs,meshProperties,Lbox);
         
-        saveVoxelCoords = ['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'];
+        saveVoxelCoords = [obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'];
         save(saveVoxelCoords,'EdofElasticity','firstSparseVecElasticity','secondSparseVecElasticity','thirdSparseVecElasticity','fourthSparseVecElasticity','meshProperties','boundaryDofs','elementMaterial','Nodedofs','-v7.3','-append');
         
         end
         function getBoundaryElements(obj)
-        load(['SVEparameters_',num2str(obj.realizationNumber),'.mat'])
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
+        load([obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'])
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
         
         boundaryElement = zeros(meshProperties.nel,1);
         for iel=1:meshProperties.nel
@@ -1534,7 +1551,7 @@ classdef SVEclass < handle
                 boundaryElement(iel) = 1;
             end
         end
-        saveVoxelCoords = ['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'];
+        saveVoxelCoords = [obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'];
         save(saveVoxelCoords,'boundaryElement','-v7.3','-append');
         end
         
