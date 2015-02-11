@@ -1,8 +1,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Develop code using this file
+% I use this file for development only
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% clc
+clc
 clear all
 close all
 
@@ -16,34 +16,23 @@ warning('off','all')
 SVE = SVEclass;
 
 % % set properties
-SVE.nx                = 70;
+SVE.nx                = 40;
 SVE.realizationNumber = 4;
 SVE.Lbox              = 2;
 SVE.aggFrac           = 0.42;
-SVE.nGaussPoints      = 2;
-SVE.strainIncrement   = 5e-8;
-SVE.startLoadStep     = 2;
-% SVE.endLoadStep       = 10;
-SVE.H.grad(1)         = -1;
-SVE.H.grad(2)         =  0;
-SVE.H.grad(3)         =  0;
 
+time.steps = 20;
+time.stepsize = 0.1;
+
+initialCondition = 1;
 
 
 % % apply methods
-SVE.setPath();
+SVE.setPath(); % uses current working directory
+%SVE.setPath('C:\optional\path'); % if you want files to be saved elsewhere
+% SVE.generateSVE(SVE.aggFrac,ballastRadii,gravelSieve,SVE.Lbox,domainFactor);
 % SVE.meshSVE();
-% SVE.getElasticityProperties();
-% SVE.getBoundaryElements();
 % SVE.writeTopology();
 % SVE.LinElasticitySolver();
-% SVE.printDamagedSVE(810);
-% SVE.computeElementCrackArea(650:810);
-SVE.homogenizedStress(1:810)
-% SVE.LinStatSolver(759);
-% SVE.diffTensorFunctionOfStrain(1:10:10)
-
-
-
-
-
+SVE.LinTransSolver(initialCondition,time);
+SVE.TransPostProcessor();
