@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Example of transient simulation.
 % Results are written to vtk-files.
-% You Paraview to visualize the results.
+% You need Paraview to visualize the results.
 %
 % The example takes approx. XX min. to run.
 %
