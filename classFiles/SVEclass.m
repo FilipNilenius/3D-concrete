@@ -77,11 +77,11 @@ classdef SVEclass < handle
     methods(Access = public)
         % constructor
         function obj = SVEclass()
-            obj.convCoeff.x.back  = 100;
+            obj.convCoeff.x.back  = inf;
             obj.convCoeff.x.front = inf;
-            obj.convCoeff.y.back  = 100;
+            obj.convCoeff.y.back  = inf;
             obj.convCoeff.y.front = inf;
-            obj.convCoeff.z.back  = 100;
+            obj.convCoeff.z.back  = inf;
             obj.convCoeff.z.front = inf;
             
             obj.ambHum.x.back  = 0;

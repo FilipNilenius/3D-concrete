@@ -41,6 +41,11 @@ time.steps = 10;
 time.stepsize = 0.1;
 initialCondition = 1;
 
+% set convective coefficient at the three 'plus' faces of the SVE 
+SVE.convCoeff.x.back = 100;
+SVE.convCoeff.y.back = 100;
+SVE.convCoeff.z.back = 100;
+
 
 % % apply methods
 SVE.setPath(); % uses current working directory
