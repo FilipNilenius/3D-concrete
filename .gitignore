@@ -45,5 +45,5 @@ Temporary Items
 # MATLAB (produced) files
 *.mat
 *.vtk
+*.asv
 codeDevelopment.m
-codeDevelopment.asv
