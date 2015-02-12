@@ -70,6 +70,7 @@ classdef SVEclass < handle
         convCoeff
         ambHum
         H
+        boundary
         
         % path to SVE realization on server
         path2Realization
@@ -95,6 +96,13 @@ classdef SVEclass < handle
             obj.H.grad(1) =  0;
             obj.H.grad(2) =  0;
             obj.H.grad(3) =  0;
+            
+            obj.boundary.x.back  = 0; % 1 if physical boundary (ie no gravel overlap)
+            obj.boundary.x.front = 0;
+            obj.boundary.y.back  = 0;
+            obj.boundary.y.front = 0;
+            obj.boundary.z.back  = 0;
+            obj.boundary.z.front = 0;
             
             obj.transientName = 'defaultName';
         end
@@ -134,18 +142,39 @@ classdef SVEclass < handle
             if sum(gravelSieve) ~=1 || length(ballastRadii) ~= length(gravelSieve)
                 disp('gravel sieve wrongly defined')
             end
-
-            aggVol = 0;
-            k = 0;
-            a = -(domainFactor-1)/2*Lbox;
-            b = (1 + (domainFactor-1)/2)*Lbox;
+            
+            
+            % % determine upper and lower [a,b] bound of interval where gragates
+            % % are places
+            % x
+            a.x = -(domainFactor - 1 - (domainFactor - 1)*obj.boundary.x.back)/2*Lbox;
+            b.x = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.x.back)/2)*Lbox;
+            % y
+            a.y = -(domainFactor - 1 - (domainFactor - 1)*obj.boundary.y.back)/2*Lbox;
+            b.y = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.y.back)/2)*Lbox;
+            % z
+            a.z = -(domainFactor - 1 - (domainFactor - 1)*obj.boundary.z.back)/2*Lbox;
+            b.z = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.z.back)/2)*Lbox;
+            
             centroid = zeros(200000,3);
             radius = zeros(200000,1);
+            
+            % seed the random number generator based on the current time
+            rng('shuffle')
+            
+            aggVol = 0;
+            k = 0;
             for iballastRadii = 1:length(ballastRadii)
                 while aggVol < sum(gravelSieve(1:iballastRadii))*aggFrac*(Lbox*domainFactor)^3
                     k = k + 1;
-                    centroid(k,:) =  a + (b-a).*rand(1,3);
-                    radius(k,1) = ballastRadii(iballastRadii);
+                    
+                    radius(k) = ballastRadii(iballastRadii);
+                    
+                    % determine centroid coordinate
+                    centroid(k,1) =  (a.x + radius(k)) + ((b.x - radius(k)) - (a.x + radius(k)))*rand;
+                    centroid(k,2) =  (a.y + radius(k)) + ((b.y - radius(k)) - (a.y + radius(k)))*rand;
+                    centroid(k,3) =  (a.z + radius(k)) + ((b.z - radius(k)) - (a.z + radius(k)))*rand;
+                    
                     if k==1
                         aggVol = aggVol + 4/3*pi*radius(k)^3;
                     else
@@ -164,6 +193,8 @@ classdef SVEclass < handle
                     end
                 end
             end
+            
+            % remove unpopulated entries in vector/matrix
             centroid = centroid(any(centroid,2),:);
             radius = radius(radius>0);
 
