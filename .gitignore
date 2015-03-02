@@ -43,7 +43,6 @@ Temporary Items
 .apdisk
 
 # MATLAB (produced) files
-*.mat
-*.vtk
 *.asv
+SVEs/*
 codeDevelopment.m
