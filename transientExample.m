@@ -31,7 +31,6 @@ SVE.aggFrac           = 0.4;
 % % input for 'generateSVE()'
 ballastRadii = [20 8 4 2]/2/10;   % Radius in [cm]. From http://www.sciencedirect.com/science/article/pii/S0168874X05001563
 gravelSieve  = [.25 .25 .35 .15]; % Distribution in fraction. sum(gravelSieve) should be 1.0
-aggFrac      = 0.30;              % Aggregate volume fraction
 domainFactor = 1.5;               % ballast particles are distributed inside domainFactor*LBox
 
 
