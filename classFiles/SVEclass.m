@@ -1473,7 +1473,11 @@ classdef SVEclass < handle
         Nodedofs = [EdofElasticity(:,1)';EdofElasticity(:,2)';EdofElasticity(:,3)']';
         EdofElasticity(RemoveVoxel,:) = [];
         
-        meshProperties.ndof.diffusion = meshProperties.ndof;
+        
+        % hack to have 'ndof' as a struct
+        ndof =  meshProperties.ndof;
+        meshProperties = rmfield(meshProperties,'ndof');
+        meshProperties.ndof.diffusion = ndof;
         meshProperties.ndof.elasticity = max(max(EdofElasticity));
         
         
