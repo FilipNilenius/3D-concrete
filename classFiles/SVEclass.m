@@ -1,58 +1,15 @@
 classdef SVEclass < handle
     %----------------------------------------------------------------------
-    % Class for 3D mesoscale SVE of concrete. Class includes methods to
+    % 3D model of heterogeneous concrete. Generates and anayses a Statistical
+    % Volume Element (SVE) of mesoscale concrete. The models includes methods to
     % generate SVE realizations, meshing and computations for both stationary
     % and transient conditions.
     %
-    % Written by Filip Nilenius, May 2013
+    % Model references:
+    % https://dx.doi.org/10.1007/s00466-014-0998-0
+    % https://dx.doi.org/10.1007/s00466-014-1105-2
     %
-    %
-    % SVEclass methods:
-    %   - setPath('string'):
-    %         Sets path to server. 'string' = 'bom' || 'cluster'.
-    %
-    %   - generateSVE(aggFrac,ballastRadii,gravelSieve,Lbox,domainFactor):
-    %         Generates SVE from given input.
-    %
-    %   - meshSVE(nx):
-    %         Mesh SVE with NEL = nx^3 and saves topology data to mat.file.
-    %         nx = positive integer.
-    %
-    %   - writeTopology():
-    %         Write topology data to VTK-file.
-    %
-    %   - [numAggFrac numArea] = computeAggFracandITZarea():
-    %         Returns aggregate fraction and total ITZ area.
-    %
-    %   - a = LinStatSolver(H,obj.sliceVector):
-    %         Returns nodal vector 'a'.
-    %
-    %   - homoDiffRow = StatPostProcessor(a,obj.sliceVector,varargin):
-    %         Computes homogenized diffusivity tensor components. If
-    %         'varargin' exists, vector field is written to VTK.file (which
-    %         requires a 'Topology_XX_X.vtk'-file.
-    %
-    %   - LinTransSolver(initialCondition,time,ambHum,convCoeff):
-    %         Solves transient system. Returns nodal vector 'a'.
-    %
-    %   - TransPostProcessor():
-    %         Writes transient solution to VTK-file.
-    %
-    %   - [spatialDirection,slicedPlane] = plotTransientFront():
-    %         Plots transient front for all time steps.
-    %
-    %   - a = LinElasticitySolver():
-    %         solves linear elasticity problem with Dirichlet BC. returns
-    %         solution vector 'a'.
-    %
-    %   - getElasticityProperties():
-    %         computes mesh data for elasticity given a mesh for
-    %         diffusivity. Should only be used for existing mesh data that
-    %         was done before elasticity was implemented.
-    %
-    %   - computeEffectiveDiffusivtyTensor():
-    %         computes effective diffusivity tensor of SVE. 
-    %----------------------------------------------------------------------
+    % Written by Filip Nilenius
     properties
         % user defined
         realizationNumber
@@ -76,8 +33,8 @@ classdef SVEclass < handle
         path2Realization
     end
     methods(Access = public)
-        % constructor
         function obj = SVEclass()
+            % constructor
             obj.convCoeff.x.back  = inf;
             obj.convCoeff.x.front = inf;
             obj.convCoeff.y.back  = inf;
@@ -106,9 +63,9 @@ classdef SVEclass < handle
             
             obj.transientName = 'defaultName';
         end
-        
-        % set objective's path on server
         function obj = setPath(obj,varargin)
+            % setPath('string'):
+            % Sets path to server. 'string' = 'bom' || 'cluster'.
             if nargin == 1
                 Root = pwd;
             else
@@ -121,22 +78,17 @@ classdef SVEclass < handle
                 mkdir(obj.path2Realization);
             end
         end
-        
-        % generate SVE and meshing
         function generateSVE(obj,aggFrac,ballastRadii,gravelSieve,Lbox,domainFactor)
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            % Generates 3D mesocale structure of concrete
+            % generateSVE(obj,aggFrac,ballastRadii,gravelSieve,Lbox,domainFactor)
+            %
+            % generates 3D mesocale structure of concrete
             %    
-            %   % example
+                %   % example
             %   ballastRadii = [20 8 4 2]/2/10;   % Radius in [cm]. From http://www.sciencedirect.com/science/article/pii/S0168874X05001563
             %   gravelSieve  = [.25 .25 .35 .15]; % Distribution in fraction. sum(gravelSieve) should be 1.0
             %   aggFrac      = 0.30;              % Aggregate volume fraction
             %   Lbox         = 6;                 % size of SVE [cm]
             %   domainFactor = 1.5;               % ballast particles are distributed insidet domainFactor*LBox
-            %
-            % Written by Filip Nilenius, 2012-05-15
-            % Last edited on: 2013-04-22
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
             % Break script if gravel sieve is wrongly defined
             if sum(gravelSieve) ~=1 || length(ballastRadii) ~= length(gravelSieve)
@@ -197,38 +149,33 @@ classdef SVEclass < handle
             % remove unpopulated entries in vector/matrix
             centroid = centroid(any(centroid,2),:);
             radius = radius(radius>0);
-
-
+            
             % Saves SVE data
             savefile = [obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'];
             save(savefile,'centroid','radius','Lbox','domainFactor','ballastRadii','gravelSieve','aggFrac');
             
         end
-        function obj = meshSVE(obj)
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            % Mesh SVE to structured grid and saves data to binary
-            % mat-file.
-            %
-            % Written by Filip Nilenius, 2012-01-24
-            % Last edited on: 2013-08-12
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function meshSVE(obj)
+            % meshSVE(nx):
+            %   Mesh SVE with NEL = nx^3 and saves topology data to mat.file.
+            %   nx = positive integer.
+            disp('---meshing SVE---')
+            
             tic
             load([obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'])
-            nx = obj.nx;
-            dx = obj.Lbox/(nx-1);
-            ny = nx;
-            nz = nx;
-            nel = nx*ny*nz;
-
+            dx = obj.Lbox/(obj.nx-1);
+            ny = obj.nx;
+            nz = obj.nx;
+            nel = obj.nx*ny*nz;
+            
             % Voxel coordinates
-            VoxelCoords = zeros(nx*ny*nz,4);
-            col3 = repmat(dx*[0:(nx-1)],[nx ny]);
-            col4 = repmat(dx*[0:(nx-1)],[nx*ny 1]);
-            VoxelCoords(:,2) = repmat(dx*[0:(nx-1)],[1 ny*nz]);
+            VoxelCoords = zeros(obj.nx*ny*nz,4);
+            col3 = repmat(dx*[0:(obj.nx-1)],[obj.nx ny]);
+            col4 = repmat(dx*[0:(obj.nx-1)],[obj.nx*ny 1]);
+            VoxelCoords(:,2) = repmat(dx*[0:(obj.nx-1)],[1 ny*nz]);
             VoxelCoords(:,3) = col3(:)';
             VoxelCoords(:,4) = col4(:)';
-
-
+            
             centro.x = centroid(:,1);
             centro.y = centroid(:,2);
             centro.z = centroid(:,3);
@@ -236,28 +183,22 @@ classdef SVEclass < handle
             centro.x = centro.x + radius;
             a = find(centro.x<0);
             centro.x = centro.x -2*radius;
-            b = find(centro.x>Lbox);
+            b = find(centro.x>obj.Lbox);
 
             centro.y = centro.y + radius;
             c = find(centro.y<0);
             centro.y = centro.y -2*radius;
-            d = find(centro.y>Lbox);
+            d = find(centro.y>obj.Lbox);
 
             centro.z = centro.z + radius;
             e = find(centro.z<0);
             centro.z = centro.z -2*radius;
-            f = find(centro.z>Lbox);
-
-
-
+            f = find(centro.z>obj.Lbox);
+            
             a = [a' b' c' d' e' f']';
-
+            
             centroid(a,:) = [];
             radius(a) = [];
-            
-%             centroid = [0.5 0.5 0.5]*obj.Lbox;
-%             radius = [0.3]*obj.Lbox;
-
             
             % Determine which constituent (ballast-cement paste) each voxel is in
             ballastVoxels = zeros(length(VoxelCoords),1);
@@ -279,12 +220,12 @@ classdef SVEclass < handle
                 Edof(i,1) = VoxelCoords(i,1);
                 Edof(i,2) = i;
                 Edof(i,3) = i  + 1;
-                Edof(i,4) = nx + i + 1;
-                Edof(i,5) = nx + i;
-                Edof(i,6) = nx*ny + i;
-                Edof(i,7) = nx*ny + i  + 1;
-                Edof(i,8) = nx*ny + nx + i + 1;
-                Edof(i,9) = nx*ny + nx + i;
+                Edof(i,4) = obj.nx + i + 1;
+                Edof(i,5) = obj.nx + i;
+                Edof(i,6) = obj.nx*ny + i;
+                Edof(i,7) = obj.nx*ny + i  + 1;
+                Edof(i,8) = obj.nx*ny + obj.nx + i + 1;
+                Edof(i,9) = obj.nx*ny + obj.nx + i;
                 
                 % Finds left-right-top boundary voxels to remove
                 if VoxelCoords(i,2)>=maxcoord-dx/2 || VoxelCoords(i,3)>=maxcoord-dx/2 || VoxelCoords(i,4)>=maxcoord-dx/2
@@ -296,30 +237,25 @@ classdef SVEclass < handle
             % Voxel center shifted to top rigt corner node
             NodeCoords = VoxelCoords;
             
-
             % Removes boundary voxels to ease global dof numbering
             Edof(RemoveVoxel,:) = [];
 
             meshProperties.ndof = max(max(Edof(:,2:end)));
             meshProperties.nel  = length(Edof(:,1));
-            meshProperties.dx   = Lbox/(meshProperties.nel^(1/3));
-            meshProperties.nx   = nx;
-            
+            meshProperties.dx   = obj.Lbox/(meshProperties.nel^(1/3));
+            meshProperties.nx   = obj.nx;
             
             % Finds ITZ voxels
             [interfaceVoxel,Edof] = obj.findITZ(meshProperties,centroid,radius,NodeCoords,Edof);
             elementMaterial = Edof(:,1);
             
-            
             % Determines boundary dofs
-            plusFaceNodes  = find(max(NodeCoords(:,2:end)')>0.999*Lbox);
-            minusFaceNodes = find(min(NodeCoords(:,2:end)')<0.001*Lbox);
+            plusFaceNodes  = find(max(NodeCoords(:,2:end)')>0.999*obj.Lbox);
+            minusFaceNodes = find(min(NodeCoords(:,2:end)')<0.001*obj.Lbox);
             BoundaryNodes  = unique([plusFaceNodes minusFaceNodes]);
             
-            
             % Determines 2D boundary elements along all faces
-            [BEdof] = obj.boundaryEdof(Edof,meshProperties,NodeCoords,Lbox);
-            
+            [BEdof] = obj.boundaryEdof(Edof,meshProperties,NodeCoords,obj.Lbox);
             
             % Generates sparse matrix structure % K = sparse(sparseVec.i,sparseVec.j,X,ndof,ndof)
             sparseVec.i = zeros(meshProperties.nel*8,8,'uint32');
@@ -346,15 +282,14 @@ classdef SVEclass < handle
             % determine mesh properties pertaining to elasticity
             obj.getElasticityProperties();
             obj.getBoundaryElements();
-            toc
+            meshingTime = toc;
+            disp(['meshing done in ',num2str(meshingTime/60),' minutes'])
         end
         function writeTopology(obj)
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            % Writes topology data to VTK-file.
-            %
-            % Written by Filip Nilenius, 2012-01-24
-            % Last edited on: 2013-08-21
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % writeTopology():
+            %   Write topology data to VTK-file.
+            disp('---writes topology to file---')
+            
             load ([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat']);
             fid = fopen([obj.path2Realization,'Topology_',num2str(meshProperties.nx),'_',num2str(obj.realizationNumber),'.vtk'], 'w');
             fprintf(fid,'# vtk DataFile Version 2.0\n');
@@ -378,13 +313,18 @@ classdef SVEclass < handle
             fclose(fid);
         end
         function [numAggFrac, numArea] = computeAggFracandITZarea(obj)
+            % [numAggFrac numArea] = computeAggFracandITZarea():
+            %   Returns aggregate fraction and total ITZ area.
             load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel','Edof','meshProperties')
             numAggFrac = 1 - (length(Edof(Edof(:,1)==0))*meshProperties.dx^3 + sum(interfaceVoxel.volume.cement))/obj.Lbox^3;
             numArea = sum(interfaceVoxel.area.ITZ);
         end
-        
         % stationary analysis
         function computeEffectiveDiffusivtyTensor(obj)
+            % computeEffectiveDiffusivtyTensor():
+            %   computes effective diffusivity tensor of SVE.
+            disp('---solves stationary diffusion problem---')
+            
             D = zeros(3,3);
             for i=1:3
                 if i == 1
@@ -407,14 +347,12 @@ classdef SVEclass < handle
             disp(D)
         end
         function homoDiffRow = LinStatSolver(obj,varargin)
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        % Solves the linear system Ka=f for a 3D mesostructure 
-        % of concrete. Dirichlet BC are implemented. Function is adapted for both
-        % full 3D SVE and 2D slices.
-        %
-        % Written by Filip Nilenius, 2012-02-01
-        % Last edited on: 2013-11-21
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % a = LinStatSolver(H,obj.sliceVector):
+        %   Returns nodal vector 'a'.
+        %   Solves the linear system Ka=f for a 3D mesostructure 
+        %   of concrete. Dirichlet BC are implemented. Function is adapted for both
+        %   full 3D SVE and 2D slices.
+        
         
         % Load topology
         load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
@@ -533,13 +471,10 @@ classdef SVEclass < handle
         end
         end
         function homoDiffRow = StatPostProcessor(obj,a,currentDamage,maxPrincipalStrain,elementCrackArea,varargin)
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        % Post processes solution and writes results to VTK-file.
-        %
-        %
-        % Written by Filip Nilenius, 2012-02-29
-        % Last edited on: 2013-03-04
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % homoDiffRow = StatPostProcessor(a,obj.sliceVector,varargin):
+        %   Computes homogenized diffusivity tensor components. If
+        %   'varargin' exists, vector field is written to VTK.file (which
+        %   requires a 'Topology_XX_X.vtk'-file.
         
         nVarargs = length(varargin);
         % Load topology
@@ -658,21 +593,11 @@ classdef SVEclass < handle
                 save([obj.path2Realization,'/diffTensorFunctionOfStrain.mat'],'diffTensor','strainVector','-v7.3','-append')
             end
         end
-        
         % transient analysis
         function LinTransSolver(obj,initialCondition,time)
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            % Solves the linear system C?+Ka=f for a 3D mesostrucutre 
-            % of concrete. Robin type BC are implemented.
-            %
-            % % Convective coefficients and ambient humidities for all surfaces
-            % time.steps = 1;
-            % time.stepsize = 1;
-            %
-            %
-            % Written by Filip Nilenius, 2012-02-16
-            % Last edited on: 2013-05-24
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % LinTransSolver(initialCondition,time):
+            %   Solves the linear system Cå+Ka=f for a 3D mesostrucutre 
+            %   of concrete. Robin type BC are implemented.
             
             % Load topology
             load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
@@ -687,8 +612,6 @@ classdef SVEclass < handle
             ballast = ballastClass;
             ITZ     = ITZClass;
             
-            convCoeff = obj.convCoeff;
-            ambHum = obj.ambHum;
 
             Kce = meshProperties.dx^2*[ 1/9 3/54 1/36 3/54
                                        3/54  1/9 3/54 1/36
@@ -731,32 +654,32 @@ classdef SVEclass < handle
             K = sparse2(sparseVec.i,sparseVec.j,X.K,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
             C = sparse2(sparseVec.i,sparseVec.j,X.C,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
             f = sparse2(meshProperties.ndof.diffusion,1);
-
+            
             % Adds convective contribution to K and builds f
             for i=1:length(BEdof.x.back.Edof)
-                if BEdof.x.back.Edof(i,5)~=2 && convCoeff.x.back ~= inf % Excluding boundary dofs in ballast
-                    K(BEdof.x.back.Edof(i,1:4),BEdof.x.back.Edof(i,1:4)) = K(BEdof.x.back.Edof(i,1:4),BEdof.x.back.Edof(i,1:4)) + convCoeff.x.back*Kce;
-                    f(BEdof.x.back.Edof(i,1:4)) = f(BEdof.x.back.Edof(i,1:4)) + ambHum.x.back*convCoeff.x.back*fce;
+                if BEdof.x.back.Edof(i,5)~=2 && obj.convCoeff.x.back ~= inf % Excluding boundary dofs in ballast
+                    K(BEdof.x.back.Edof(i,1:4),BEdof.x.back.Edof(i,1:4)) = K(BEdof.x.back.Edof(i,1:4),BEdof.x.back.Edof(i,1:4)) + obj.convCoeff.x.back*Kce;
+                    f(BEdof.x.back.Edof(i,1:4)) = f(BEdof.x.back.Edof(i,1:4)) + obj.ambHum.x.back*obj.convCoeff.x.back*fce;
                 end
-                if BEdof.x.front.Edof(i,5)~=2 && convCoeff.x.front ~= inf % Excluding boundary dofs in ballast
-                    K(BEdof.x.front.Edof(i,1:4),BEdof.x.front.Edof(i,1:4)) = K(BEdof.x.front.Edof(i,1:4),BEdof.x.front.Edof(i,1:4)) + convCoeff.x.front*Kce;
-                    f(BEdof.x.front.Edof(i,1:4)) = f(BEdof.x.front.Edof(i,1:4)) + ambHum.x.front*convCoeff.x.front*fce;
+                if BEdof.x.front.Edof(i,5)~=2 && obj.convCoeff.x.front ~= inf % Excluding boundary dofs in ballast
+                    K(BEdof.x.front.Edof(i,1:4),BEdof.x.front.Edof(i,1:4)) = K(BEdof.x.front.Edof(i,1:4),BEdof.x.front.Edof(i,1:4)) + obj.convCoeff.x.front*Kce;
+                    f(BEdof.x.front.Edof(i,1:4)) = f(BEdof.x.front.Edof(i,1:4)) + obj.ambHum.x.front*obj.convCoeff.x.front*fce;
                 end
-                if BEdof.y.back.Edof(i,5)~=2 && convCoeff.y.back ~= inf % Excluding boundary dofs in ballast
-                    K(BEdof.y.back.Edof(i,1:4),BEdof.y.back.Edof(i,1:4)) = K(BEdof.y.back.Edof(i,1:4),BEdof.y.back.Edof(i,1:4)) + convCoeff.y.back*Kce;
-                    f(BEdof.y.back.Edof(i,1:4)) = f(BEdof.y.back.Edof(i,1:4)) + ambHum.y.back*convCoeff.y.back*fce;
+                if BEdof.y.back.Edof(i,5)~=2 && obj.convCoeff.y.back ~= inf % Excluding boundary dofs in ballast
+                    K(BEdof.y.back.Edof(i,1:4),BEdof.y.back.Edof(i,1:4)) = K(BEdof.y.back.Edof(i,1:4),BEdof.y.back.Edof(i,1:4)) + obj.convCoeff.y.back*Kce;
+                    f(BEdof.y.back.Edof(i,1:4)) = f(BEdof.y.back.Edof(i,1:4)) + obj.ambHum.y.back*obj.convCoeff.y.back*fce;
                 end
-                if BEdof.y.front.Edof(i,5)~=2 && convCoeff.y.front ~= inf % Excluding boundary dofs in ballast
-                    K(BEdof.y.front.Edof(i,1:4),BEdof.y.front.Edof(i,1:4)) = K(BEdof.y.front.Edof(i,1:4),BEdof.y.front.Edof(i,1:4)) + convCoeff.y.front*Kce;
-                    f(BEdof.y.front.Edof(i,1:4)) = f(BEdof.y.front.Edof(i,1:4)) + ambHum.y.front*convCoeff.y.front*fce;
+                if BEdof.y.front.Edof(i,5)~=2 && obj.convCoeff.y.front ~= inf % Excluding boundary dofs in ballast
+                    K(BEdof.y.front.Edof(i,1:4),BEdof.y.front.Edof(i,1:4)) = K(BEdof.y.front.Edof(i,1:4),BEdof.y.front.Edof(i,1:4)) + obj.convCoeff.y.front*Kce;
+                    f(BEdof.y.front.Edof(i,1:4)) = f(BEdof.y.front.Edof(i,1:4)) + obj.ambHum.y.front*obj.convCoeff.y.front*fce;
                 end
-                if BEdof.z.back.Edof(i,5)~=2 && convCoeff.z.back ~= inf % Excluding boundary dofs in ballast
-                    K(BEdof.z.back.Edof(i,1:4),BEdof.z.back.Edof(i,1:4)) = K(BEdof.z.back.Edof(i,1:4),BEdof.z.back.Edof(i,1:4)) + convCoeff.z.back*Kce;
-                    f(BEdof.z.back.Edof(i,1:4)) = f(BEdof.z.back.Edof(i,1:4)) + ambHum.z.back*convCoeff.z.back*fce;
+                if BEdof.z.back.Edof(i,5)~=2 && obj.convCoeff.z.back ~= inf % Excluding boundary dofs in ballast
+                    K(BEdof.z.back.Edof(i,1:4),BEdof.z.back.Edof(i,1:4)) = K(BEdof.z.back.Edof(i,1:4),BEdof.z.back.Edof(i,1:4)) + obj.convCoeff.z.back*Kce;
+                    f(BEdof.z.back.Edof(i,1:4)) = f(BEdof.z.back.Edof(i,1:4)) + obj.ambHum.z.back*obj.convCoeff.z.back*fce;
                 end
-                if BEdof.z.front.Edof(i,5)~=2 && convCoeff.z.front ~= inf % Excluding boundary dofs in ballast
-                    K(BEdof.z.front.Edof(i,1:4),BEdof.z.front.Edof(i,1:4)) = K(BEdof.z.front.Edof(i,1:4),BEdof.z.front.Edof(i,1:4)) + convCoeff.z.front*Kce;
-                    f(BEdof.z.front.Edof(i,1:4)) = f(BEdof.z.front.Edof(i,1:4)) + ambHum.z.front*convCoeff.z.front*fce;
+                if BEdof.z.front.Edof(i,5)~=2 && obj.convCoeff.z.front ~= inf % Excluding boundary dofs in ballast
+                    K(BEdof.z.front.Edof(i,1:4),BEdof.z.front.Edof(i,1:4)) = K(BEdof.z.front.Edof(i,1:4),BEdof.z.front.Edof(i,1:4)) + obj.convCoeff.z.front*Kce;
+                    f(BEdof.z.front.Edof(i,1:4)) = f(BEdof.z.front.Edof(i,1:4)) + obj.ambHum.z.front*obj.convCoeff.z.front*fce;
                 end
             end
 
@@ -786,14 +709,8 @@ classdef SVEclass < handle
 
         end
         function TransPostProcessor(obj)
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            % Post processes solution obtained from 'LinStatSolver' and 
-            % writes resluts to .vtk-file.
-            %
-            %
-            % Written by Filip Nilenius, 2012-02-29
-            % Last edited on: 2013-05-27
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % TransPostProcessor():
+            %   Writes transient solution to VTK-file.
 
             load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
             load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel')
@@ -857,10 +774,11 @@ classdef SVEclass < handle
             end
         end
         function [spatialDirection,slicedPlane] = plotTransientFront(obj)
+            % [spatialDirection,slicedPlane] = plotTransientFront():
+            %   Plots transient front for all time steps.
             load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
             load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
             load([obj.transientName,'.mat']);
-            
             
             [ff nts] = size(a_store);
             slicedPlane.mean = zeros(meshProperties.nx,1);
@@ -878,15 +796,11 @@ classdef SVEclass < handle
                 xlabel('spatial direction [cm]')
             end
         end
-        
         % linear elasticity
         function LinElasticitySolver(obj)
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        % Solves the linear system Ka=f for a 3D mesostructure 
-        % of concrete. Dirichlet BC are implemented.
-        %
-        % Last edited on: 2013-11-27
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % LinElasticitySolver():
+        %   solves linear elasticity problem with Dirichlet BC. returns
+        %   solution vector 'a'.
         
         % Load topology
         load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
@@ -1390,11 +1304,12 @@ classdef SVEclass < handle
             end
             matlabpool close
         end
-        
         % update existing model with new functionallity
         function getElasticityProperties(obj)
-        % Computes EdofElasticity (and more) and saves to existing
-        % .mat-file.
+        % getElasticityProperties():
+        %   computes mesh data for elasticity given a mesh for
+        %   diffusivity. Should only be used for existing mesh data that
+        %   was done before elasticity was implemented.
 
         load([obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'])
         load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
@@ -2003,7 +1918,7 @@ classdef SVEclass < handle
                 end
 
                 % Face BEdof.y.front.Edof
-                if NodeCoords(Edof(i,6),3) > Lbox-meshProperties.dx/2 % tests node 5
+                if NodeCoords(Edof(i,5),3) > Lbox-meshProperties.dx/2 % tests node 4
                     BEdof.y.front.counter = BEdof.y.front.counter + 1;
                     BEdof.y.front.Edof(BEdof.y.front.counter,1) = Edof(i,4);
                     BEdof.y.front.Edof(BEdof.y.front.counter,2) = Edof(i,6);
@@ -2021,7 +1936,7 @@ classdef SVEclass < handle
                     BEdof.z.back.Edof(BEdof.z.back.counter,4) = Edof(i,4);
                     BEdof.z.back.Edof(BEdof.z.back.counter,5) = Edof(i,1);
                 end
-
+                
                 % Face BEdof.z.front.Edof
                 if NodeCoords(Edof(i,6),4) > Lbox-meshProperties.dx/2 % tests node 5
                     BEdof.z.front.counter = BEdof.z.front.counter + 1;
