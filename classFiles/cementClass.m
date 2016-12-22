@@ -5,6 +5,7 @@ classdef cementClass < materialClass
         Ec = 35e5;
         crackingStress = 3.5e2; % N/(cm^2)
         crackingStrain = 1e-4;
+        storageCapacity
     end
     
     methods
@@ -12,6 +13,7 @@ classdef cementClass < materialClass
             obj.YoungsModulus = 35e5; % N/(cm^2)
             obj.PoissonsRatio = 0.2;
             obj.diffusionCoefficient = 1;
+            obj.storageCapacity = 10;
             
             obj = constructMaterial(obj);
         end

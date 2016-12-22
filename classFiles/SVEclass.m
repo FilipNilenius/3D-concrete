@@ -282,8 +282,15 @@ classdef SVEclass < handle
             % determine mesh properties pertaining to elasticity
             obj.getElasticityProperties();
             obj.getBoundaryElements();
+            
             meshingTime = toc;
-            disp(['meshing done in ',num2str(meshingTime/60),' minutes'])
+            if meshingTime > 60 && meshingTime < 60*60
+                disp(['meshing done in ',num2str(meshingTime/60),' minutes'])
+            elseif meshingTime >= 60*60
+                disp(['meshing done in ',num2str(meshingTime/60/60),' hours'])
+            else
+                disp(['meshing done in ',num2str(meshingTime),' seconds'])
+            end
         end
         function writeTopology(obj)
             % writeTopology():
@@ -598,6 +605,7 @@ classdef SVEclass < handle
             % LinTransSolver(initialCondition,time):
             %   Solves the linear system Cå+Ka=f for a 3D mesostrucutre 
             %   of concrete. Robin type BC are implemented.
+            disp('---solves transient diffusion problem---')
             
             % Load topology
             load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
@@ -623,7 +631,7 @@ classdef SVEclass < handle
             [ex_in,ey_in,ez_in] = obj.prepareKe(meshProperties.dx);
             [B,detJ,wp] = computeBmatrix(ex_in,ey_in,ez_in,2);
             Kee = obj.flw3i8e(ex_in,ey_in,ez_in,2,eye(3),2);
-            Cee = obj.Ce_3D(ex_in,ey_in,ez_in,3,10);
+            Cee = obj.Ce_3D(ex_in,ey_in,ez_in,3,cement.storageCapacity);
             
             crackDiffusivityTensor = cell(meshProperties.nel,1);
             [crackDiffusivityTensor{:}] = deal(zeros(3));
@@ -633,6 +641,7 @@ classdef SVEclass < handle
             X.K = zeros(meshProperties.nel*8,8);
             X.C = zeros(meshProperties.nel*8,8);
             
+            tic
             for iel=1:meshProperties.nel
                 if elementMaterial(iel) == 2 % ITZ
                     diffusionTensor = constitutiveModel(cement,ballast,ITZ,iel,interfaceVoxel,crackDiffusivityTensor{iel});
@@ -682,7 +691,15 @@ classdef SVEclass < handle
                     f(BEdof.z.front.Edof(i,1:4)) = f(BEdof.z.front.Edof(i,1:4)) + obj.ambHum.z.front*obj.convCoeff.z.front*fce;
                 end
             end
-
+            assem = toc;
+            
+            if assem > 60 && assem < 60*60
+                disp(['assembling C and K in ',num2str(assem/60),' minutes'])
+            elseif assem >= 60*60
+                disp(['assembling C and K in ',num2str(assem/60/60),' hours'])
+            else
+                disp(['assembling C and K in ',num2str(assem),' seconds'])
+            end
             
             % Condensates the system due to ballast dofs
             [CPdofs col] = find(diag(K)>0);
@@ -711,7 +728,8 @@ classdef SVEclass < handle
         function TransPostProcessor(obj)
             % TransPostProcessor():
             %   Writes transient solution to VTK-file.
-
+            
+            disp('---post processing transient solution---')
             load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
             load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel')
             load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
