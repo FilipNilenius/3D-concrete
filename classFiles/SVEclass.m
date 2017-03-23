@@ -370,9 +370,12 @@ classdef SVEclass < handle
         load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
         load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'BoundaryNodes')
         
+        % needed for transparency for parfor
+        elementMaterial = elementMaterial;
+        interfaceVoxel = interfaceVoxel;
         
         crackDiffusivityTensor = cell(meshProperties.nel,1);
-        [crackDiffusivityTensor{:}] = deal(zeros(3));
+        crackDiffusivityTensor(:) = {zeros(3)};
         
         % load step solution if given as input
         nVarargs = length(varargin);
@@ -408,10 +411,11 @@ classdef SVEclass < handle
         [B,detJ,wp] = computeBmatrix(ex_in,ey_in,ez_in,obj.nGaussPoints);
         
         
-        X = zeros(meshProperties.nel*8,8);
+        %X = zeros(meshProperties.nel*8,8);
+        X = cell(meshProperties.nel,1);
 
         tic
-        for iel=1:meshProperties.nel
+        parfor iel=1:meshProperties.nel
             if elementMaterial(iel) == 2 % ITZ
                 diffusionTensor = constitutiveModel(cement,ballast,ITZ,iel,interfaceVoxel,crackDiffusivityTensor{iel});
             elseif elementMaterial(iel) == 1 % Ballast
@@ -419,8 +423,10 @@ classdef SVEclass < handle
             elseif elementMaterial(iel) == 0 % Cement
                 diffusionTensor = cement.diffusionCoefficient*eye(3) + crackDiffusivityTensor{iel};
             end
-            X((iel*8-7):iel*8,:) = computeKe(2,wp,detJ,B,diffusionTensor);
+            %X((iel*8-7):iel*8,:) = computeKe(2,wp,detJ,B,diffusionTensor);
+            X{iel} = computeKe(2,wp,detJ,B,diffusionTensor);
         end
+        
         assemblingK = toc;
         if assemblingK > 60 && assemblingK < 60*60
             disp(['assembling K in ',num2str(assemblingK/60),' minutes, finished on ', datestr(now)])
@@ -429,10 +435,13 @@ classdef SVEclass < handle
         else
             disp(['assembling K in ',num2str(assemblingK),' seconds, finished on ', datestr(now)])
         end
-
+        poolobj = gcp('nocreate');
+        delete(poolobj);
+        
         clear Edof;
         clear interfaceVoxel;
-
+        
+        X = cell2mat(X);
         X = reshape(X',meshProperties.nel*8*8,1);
         K.full = sparse2(sparseVec.i,sparseVec.j,X,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
 
@@ -456,7 +465,7 @@ classdef SVEclass < handle
         K.fp = K.full(dofs.cement.free,dofs.cement.prescribed);
         K.ff = K.full(dofs.cement.free,dofs.cement.free);
         clear K.full;
-
+        
 
         % Solves equation system using iterative solver
         tic
@@ -490,13 +499,18 @@ classdef SVEclass < handle
         load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
         load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'elementMaterial')
         
+        % needed for transparency for parfor
+        Edof = Edof;
+        elementMaterial = elementMaterial;
+        interfaceVoxel = interfaceVoxel;
+        
         % create material objects
         cement = cementClass;
         ballast = ballastClass;
         ITZ = ITZClass;
         
         crackDiffusivityTensor = cell(meshProperties.nel,1);
-        [crackDiffusivityTensor{:}] = deal(zeros(3));
+        crackDiffusivityTensor(:) = {zeros(3)};
         
         
         if nVarargs ~= 0
@@ -519,7 +533,7 @@ classdef SVEclass < handle
 
         es_Store = zeros(meshProperties.nel,3);
         
-        for iel=1:meshProperties.nel
+        parfor iel=1:meshProperties.nel
             if elementMaterial(iel) == 2 % ITZ
                 diffusionTensor = constitutiveModel(cement,ballast,ITZ,iel,interfaceVoxel,crackDiffusivityTensor{iel});
             elseif elementMaterial(iel) == 1 % Ballast
@@ -537,6 +551,9 @@ classdef SVEclass < handle
 
             es_Store(iel,:) = elementFlux/(obj.nGaussPoints)^3;
         end
+        poolobj = gcp('nocreate');
+        delete(poolobj);
+        
         homoDiffRow = mean(es_Store)';
             
         
@@ -544,7 +561,7 @@ classdef SVEclass < handle
         if obj.H.bar(1) ~0
             writeVectorField(obj,es_Store,meshProperties.ndof,a,obj.path2Realization,obj.realizationNumber,obj.nx);
         end
-
+        
         function writeVectorField(obj,es_Store,ndof,a,path2Realization,iRealization,nx)
         
         % Writes 3D structure data to .vtk-file
