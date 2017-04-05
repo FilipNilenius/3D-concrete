@@ -261,7 +261,6 @@ classdef SVEclass < handle
             sparseVec.i = zeros(meshProperties.nel*8,8,'uint32');
             sparseVec.j = zeros(meshProperties.nel*8,8,'uint32');
             k=0;
-            kk = 0;
             for i=1:meshProperties.nel
                 % diffusion
                 for j=1:8
@@ -632,6 +631,10 @@ classdef SVEclass < handle
             load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'sparseVec');
             load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'elementMaterial')
             
+            % needed for transparency for parfor
+            elementMaterial = elementMaterial;
+            interfaceVoxel = interfaceVoxel;
+            
             % create material objects
             cement  = cementClass;
             ballast = ballastClass;
@@ -651,15 +654,14 @@ classdef SVEclass < handle
             Cee = obj.Ce_3D(ex_in,ey_in,ez_in,3,cement.storageCapacity);
             
             crackDiffusivityTensor = cell(meshProperties.nel,1);
-            [crackDiffusivityTensor{:}] = deal(zeros(3));
-            
+            crackDiffusivityTensor(:) = {zeros(3)};
 
             % Assemble K and C
-            X.K = zeros(meshProperties.nel*8,8);
-            X.C = zeros(meshProperties.nel*8,8);
+            K = cell(meshProperties.nel,1);
+            C = cell(meshProperties.nel,1);
             
             tic
-            for iel=1:meshProperties.nel
+            parfor iel=1:meshProperties.nel
                 if elementMaterial(iel) == 2 % ITZ
                     diffusionTensor = constitutiveModel(cement,ballast,ITZ,iel,interfaceVoxel,crackDiffusivityTensor{iel});
                     Ce = Cee;
@@ -670,15 +672,19 @@ classdef SVEclass < handle
                     diffusionTensor = cement.diffusionCoefficient*eye(3) + crackDiffusivityTensor{iel};
                     Ce = Cee;
                 end
-                X.K((iel*8-7):iel*8,:) = computeKe(2,wp,detJ,B,diffusionTensor);
-                X.C((iel*8-7):iel*8,:) = Ce;
+                K{iel} = computeKe(2,wp,detJ,B,diffusionTensor);
+                C{iel} = Ce;
             end
+            poolobj = gcp('nocreate');
+            delete(poolobj);
             
-            X.K  = reshape(X.K',meshProperties.nel*8*8,1);
-            X.C  = reshape(X.C',meshProperties.nel*8*8,1);
+            K = cell2mat(K);
+            K = reshape(K',meshProperties.nel*8*8,1);
+            C = cell2mat(C);
+            C = reshape(C',meshProperties.nel*8*8,1);
             
-            K = sparse2(sparseVec.i,sparseVec.j,X.K,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
-            C = sparse2(sparseVec.i,sparseVec.j,X.C,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
+            K = sparse2(sparseVec.i,sparseVec.j,K,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
+            C = sparse2(sparseVec.i,sparseVec.j,C,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
             f = sparse2(meshProperties.ndof.diffusion,1);
             
             % Adds convective contribution to K and builds f
@@ -754,6 +760,12 @@ classdef SVEclass < handle
             load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'elementMaterial')
             load([obj.path2Realization,obj.transientName,'.mat']);
             
+            % needed for transparency for parfor
+            Edof = Edof;
+            elementMaterial = elementMaterial;
+            interfaceVoxel = interfaceVoxel;
+            a_store = a_store;
+            
             [ff,nts] = size(a_store); 
             
             
@@ -763,7 +775,7 @@ classdef SVEclass < handle
             ITZ     = ITZClass;
             
             crackDiffusivityTensor = cell(meshProperties.nel,1);
-            [crackDiffusivityTensor{:}] = deal(zeros(3));
+            crackDiffusivityTensor(:) = {zeros(3)};
             
             % Computes flux in Gauss-points
             [ex_in,ey_in,ez_in] = obj.prepareKe(meshProperties.dx);
@@ -774,7 +786,7 @@ classdef SVEclass < handle
                 
                 es_Store = zeros(meshProperties.nel,3);
                 % Computes flux in Gauss-points
-                for iel=1:meshProperties.nel
+                parfor iel=1:meshProperties.nel
                     if elementMaterial(iel) == 2 % ITZ
                         diffusionTensor = constitutiveModel(cement,ballast,ITZ,iel,interfaceVoxel,crackDiffusivityTensor{iel});
                     elseif elementMaterial(iel) == 1 % Ballast
@@ -782,10 +794,11 @@ classdef SVEclass < handle
                     elseif elementMaterial(iel) == 0 % Cement
                         diffusionTensor = cement.diffusionCoefficient*eye(3) + crackDiffusivityTensor{iel};
                     end
-
+                    
                     ed = a_store(Edof(iel,2:end),i)';
-
+                    
                     elementFlux = zeros(3,1);
+                    
                     for ii=1:(obj.nGaussPoints)^3
                         elementFlux = elementFlux + -diffusionTensor*B.gaussPoint{ii}*ed';
                     end
@@ -807,6 +820,8 @@ classdef SVEclass < handle
                 fclose(fid);
                 disp(['Number of time steps left: ',num2str(nts-i)])
             end
+            poolobj = gcp('nocreate');
+            delete(poolobj);
         end
         function [spatialDirection,slicedPlane] = plotTransientFront(obj)
             % [spatialDirection,slicedPlane] = plotTransientFront():
