@@ -53,6 +53,17 @@ initialCondition = 1;
 SVE.convCoeff.x.back = 100;
 SVE.convCoeff.y.back = 100;
 SVE.convCoeff.z.back = 100;
+SVE.convCoeff.y.front = inf;
+SVE.convCoeff.z.back  = inf;
+SVE.convCoeff.z.front = inf;
+
+% set ambient humidity around the SVE where convective coefficient ~=inf
+SVE.ambHum.x.back  = 0;
+SVE.ambHum.x.front = 0;
+SVE.ambHum.y.back  = 0;
+% SVE.ambHum.y.front = 0;
+% SVE.ambHum.z.back  = 0;
+% SVE.ambHum.z.front = 0;
 
 
 % % apply methods
