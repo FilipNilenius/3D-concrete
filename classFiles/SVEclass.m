@@ -98,7 +98,7 @@ classdef SVEclass < handle
             
             
             % % determine upper and lower [a,b] bound of interval where gragates
-            % % are places
+            % % are places in side SVE
             % x
             a.x = -(domainFactor - 1 - (domainFactor - 1)*obj.boundary.x.back)/2*Lbox;
             b.x = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.x.back)/2)*Lbox;
