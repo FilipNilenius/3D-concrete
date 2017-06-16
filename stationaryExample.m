@@ -12,7 +12,6 @@ addpath([pwd,'/misc'])
 warning('off','all')
 
 
-
 % % create object
 SVE = SVEclass;
 

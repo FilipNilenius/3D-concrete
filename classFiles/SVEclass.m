@@ -1,15 +1,16 @@
 classdef SVEclass < handle
     %----------------------------------------------------------------------
-    % 3D model of heterogeneous concrete. Generates and anayses a Statistical
-    % Volume Element (SVE) of mesoscale concrete. The models includes methods to
-    % generate SVE realizations, meshing and computations for both stationary
-    % and transient conditions.
+    % 3D model of heterogeneous concrete. Generates and anayses a
+    % Statistical Volume Element (SVE) of mesoscale concrete. The models
+    % includes methods to generate SVE realizations, meshing and
+    % computations for both stationary and transient conditions.
     %
-    % Model references:
+    % Model references: 
     % https://dx.doi.org/10.1007/s00466-014-0998-0
     % https://dx.doi.org/10.1007/s00466-014-1105-2
     %
     % Written by Filip Nilenius
+    %----------------------------------------------------------------------
     properties
         % user defined
         realizationNumber
