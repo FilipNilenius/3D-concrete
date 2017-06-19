@@ -940,7 +940,6 @@ classdef SVEclass < handle
         
         loadStep = obj.startLoadStep;
         incrementSwitch = 1;
-        matlabpool open local
         while loadStep <= obj.endLoadStep
             disp(sprintf('\n'))
             disp(['load step ',num2str(loadStep),':'])
@@ -1006,35 +1005,34 @@ classdef SVEclass < handle
 %             while norm(residual)>obj.residualTOL
             try
                 for ii=1:3
-
                     % assemble K
                     K.full = sparse2([],[],[],meshProperties.ndof.elasticity,meshProperties.ndof.elasticity);
-
+                    
                     tic
                     for assemPart = 1:4
                         if assemPart == 1
-                            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'firstSparseVecElasticity');
+                            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'firstSparseVecElasticity');
                             X = cell(length(firstSparseVecElasticity.first),1);
                             elements = firstSparseVecElasticity.first;
                             iVec = firstSparseVecElasticity.i;
                             jVec = firstSparseVecElasticity.j;
                             clear firstSparseVecElasticity
                         elseif assemPart ==2
-                            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'secondSparseVecElasticity');
+                            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'secondSparseVecElasticity');
                             X = cell(length(secondSparseVecElasticity.second),1);
                             elements = secondSparseVecElasticity.second;
                             iVec = secondSparseVecElasticity.i;
                             jVec = secondSparseVecElasticity.j;
                             clear secondSparseVecElasticity
                         elseif assemPart ==3
-                            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'thirdSparseVecElasticity');
+                            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'thirdSparseVecElasticity');
                             X = cell(length(thirdSparseVecElasticity.third),1);
                             elements = thirdSparseVecElasticity.third;
                             iVec = thirdSparseVecElasticity.i;
                             jVec = thirdSparseVecElasticity.j;
                             clear thirdSparseVecElasticity
                         elseif assemPart == 4
-                            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'fourthSparseVecElasticity');
+                            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'fourthSparseVecElasticity');
                             X = cell(length(fourthSparseVecElasticity.fourth),1);
                             elements = fourthSparseVecElasticity.fourth;
                             iVec = fourthSparseVecElasticity.i;
@@ -1092,7 +1090,9 @@ classdef SVEclass < handle
                         maxPrincipalStrain.eigenvalue(elements) = cell2mat(partMaxPrincipalStrain);
 
                     end
-
+                    poolobj = gcp('nocreate');
+                    delete(poolobj);
+                    
 
                     clear X iVec jVec
 
