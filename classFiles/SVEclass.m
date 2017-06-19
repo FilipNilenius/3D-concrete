@@ -1164,7 +1164,6 @@ classdef SVEclass < handle
                incrementSwitch = 0;
             end
         end
-        matlabpool close
         end
         function computeElementCrackArea(obj,chosenTimeSteps)
             load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
@@ -1232,26 +1231,26 @@ classdef SVEclass < handle
                 fprintf(fid,'LOOKUP_TABLE default\n');
                 fprintf(fid,'%d \n',currentDamage');
                 fprintf(fid,'\n');
-    %             fprintf(fid,'SCALARS strain_xx float 1\n');
-    %             fprintf(fid,'LOOKUP_TABLE default\n');
-    %             fprintf(fid,'%d\n',Strains(:,1)');
-    %             fprintf(fid,'\n');
-    %             fprintf(fid,'SCALARS strain_yy float 1\n');
-    %             fprintf(fid,'LOOKUP_TABLE default\n');
-    %             fprintf(fid,'%d\n',Strains(:,2)');
-    %             fprintf(fid,'\n');
-    %             fprintf(fid,'SCALARS strain_zz float 1\n');
-    %             fprintf(fid,'LOOKUP_TABLE default\n');
-    %             fprintf(fid,'%d\n',Strains(:,3)');
-    %             fprintf(fid,'\n');
-    %             fprintf(fid,'SCALARS stress_xx float 1\n');
-    %             fprintf(fid,'LOOKUP_TABLE default\n');
-    %             fprintf(fid,'%d\n',Stresses(:,1)');
-    %             fprintf(fid,'\n');
-    %             fprintf(fid,'SCALARS stress_yy float 1\n');
-    %             fprintf(fid,'LOOKUP_TABLE default\n');
-    %             fprintf(fid,'%d\n',Stresses(:,2)');
-    %             fprintf(fid,'\n');
+%                 fprintf(fid,'SCALARS strain_xx float 1\n');
+%                 fprintf(fid,'LOOKUP_TABLE default\n');
+%                 fprintf(fid,'%d\n',Strains(:,1)');
+%                 fprintf(fid,'\n');
+%                 fprintf(fid,'SCALARS strain_yy float 1\n');
+%                 fprintf(fid,'LOOKUP_TABLE default\n');
+%                 fprintf(fid,'%d\n',Strains(:,2)');
+%                 fprintf(fid,'\n');
+%                 fprintf(fid,'SCALARS strain_zz float 1\n');
+%                 fprintf(fid,'LOOKUP_TABLE default\n');
+%                 fprintf(fid,'%d\n',Strains(:,3)');
+%                 fprintf(fid,'\n');
+%                 fprintf(fid,'SCALARS stress_xx float 1\n');
+%                 fprintf(fid,'LOOKUP_TABLE default\n');
+%                 fprintf(fid,'%d\n',Stresses(:,1)');
+%                 fprintf(fid,'\n');
+%                 fprintf(fid,'SCALARS stress_yy float 1\n');
+%                 fprintf(fid,'LOOKUP_TABLE default\n');
+%                 fprintf(fid,'%d\n',Stresses(:,2)');
+%                 fprintf(fid,'\n');
 %                 fprintf(fid,'SCALARS stress_zz float 1\n');
 %                 fprintf(fid,'LOOKUP_TABLE default\n');
 %                 fprintf(fid,'%d\n',Stresses(:,3)');
