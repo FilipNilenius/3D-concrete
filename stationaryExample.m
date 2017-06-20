@@ -41,7 +41,7 @@ domainFactor = 1.5;               % ballast particles are distributed inside dom
 % % apply methods
 SVE.setPath(); % uses current working directory
 % SVE.setPath('C:\optional\path'); % if you want files to be saved elsewhere
-SVE.generateSVE(SVE.aggFrac,ballastRadii,gravelSieve,SVE.Lbox,domainFactor);
+SVE.generateSVE(ballastRadii,gravelSieve,domainFactor);
 SVE.meshSVE();
 SVE.writeTopology();
 SVE.computeEffectiveDiffusivtyTensor();

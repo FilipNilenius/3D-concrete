@@ -79,8 +79,8 @@ classdef SVEclass < handle
                 mkdir(obj.path2Realization);
             end
         end
-        function generateSVE(obj,aggFrac,ballastRadii,gravelSieve,Lbox,domainFactor)
-            % generateSVE(obj,aggFrac,ballastRadii,gravelSieve,Lbox,domainFactor)
+        function generateSVE(obj,ballastRadii,gravelSieve,domainFactor)
+            % generateSVE(obj,ballastRadii,gravelSieve,Lbox,domainFactor)
             %
             % generates 3D mesocale structure of concrete
             %    
@@ -100,14 +100,14 @@ classdef SVEclass < handle
             % % determine upper and lower [a,b] bound of interval where gragates
             % % are places in side SVE
             % x
-            a.x = -(domainFactor - 1 - (domainFactor - 1)*obj.boundary.x.back)/2*Lbox;
-            b.x = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.x.front)/2)*Lbox;
+            a.x = -(domainFactor - 1 - (domainFactor - 1)*obj.boundary.x.back)/2*obj.Lbox;
+            b.x = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.x.front)/2)*obj.Lbox;
             % y
-            a.y = -(domainFactor - 1 - (domainFactor - 1)*obj.boundary.y.back)/2*Lbox;
-            b.y = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.y.front)/2)*Lbox;
+            a.y = -(domainFactor - 1 - (domainFactor - 1)*obj.boundary.y.back)/2*obj.Lbox;
+            b.y = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.y.front)/2)*obj.Lbox;
             % z
-            a.z = -(domainFactor - 1 - (domainFactor - 1)*obj.boundary.z.back)/2*Lbox;
-            b.z = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.z.front)/2)*Lbox;
+            a.z = -(domainFactor - 1 - (domainFactor - 1)*obj.boundary.z.back)/2*obj.Lbox;
+            b.z = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.z.front)/2)*obj.Lbox;
             
             centroid = zeros(200000,3);
             radius = zeros(200000,1);
@@ -118,7 +118,7 @@ classdef SVEclass < handle
             aggVol = 0;
             k = 0;
             for iballastRadii = 1:length(ballastRadii)
-                while aggVol < sum(gravelSieve(1:iballastRadii))*aggFrac*(Lbox*domainFactor)^3
+                while aggVol < sum(gravelSieve(1:iballastRadii))*obj.aggFrac*(obj.Lbox*domainFactor)^3
                     k = k + 1;
                     
                     radius(k) = ballastRadii(iballastRadii);
@@ -141,7 +141,7 @@ classdef SVEclass < handle
                             k = k - 1;
                         else % add ballast volume to accumulated volume
                             aggVol = aggVol + 4/3*pi*radius(k)^3;
-                            dispFrac = aggVol/(aggFrac*(Lbox*domainFactor)^3);
+                            dispFrac = aggVol/(obj.aggFrac*(obj.Lbox*domainFactor)^3);
                         end
                     end
                 end
@@ -152,6 +152,8 @@ classdef SVEclass < handle
             radius = radius(radius>0);
             
             % Saves SVE data
+            aggFrac = obj.aggFrac;
+            Lbox = obj.Lbox;
             savefile = [obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'];
             save(savefile,'centroid','radius','Lbox','domainFactor','ballastRadii','gravelSieve','aggFrac');
             
