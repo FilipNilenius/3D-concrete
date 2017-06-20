@@ -98,16 +98,16 @@ classdef SVEclass < handle
             
             
             % % determine upper and lower [a,b] bound of interval where gragates
-            % % are places
+            % % are places in side SVE
             % x
             a.x = -(domainFactor - 1 - (domainFactor - 1)*obj.boundary.x.back)/2*Lbox;
-            b.x = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.x.back)/2)*Lbox;
+            b.x = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.x.front)/2)*Lbox;
             % y
             a.y = -(domainFactor - 1 - (domainFactor - 1)*obj.boundary.y.back)/2*Lbox;
-            b.y = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.y.back)/2)*Lbox;
+            b.y = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.y.front)/2)*Lbox;
             % z
             a.z = -(domainFactor - 1 - (domainFactor - 1)*obj.boundary.z.back)/2*Lbox;
-            b.z = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.z.back)/2)*Lbox;
+            b.z = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.z.front)/2)*Lbox;
             
             centroid = zeros(200000,3);
             radius = zeros(200000,1);
