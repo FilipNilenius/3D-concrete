@@ -620,7 +620,7 @@ classdef SVEclass < handle
         % transient analysis
         function LinTransSolver(obj,initialCondition,time)
             % LinTransSolver(initialCondition,time):
-            %   Solves the linear system Cå+Ka=f for a 3D mesostrucutre 
+            %   Solves the linear system CÃ¥+Ka=f for a 3D mesostrucutre 
             %   of concrete. Robin type BC are implemented.
             disp('---solves transient diffusion problem---')
             
