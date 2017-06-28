@@ -92,7 +92,7 @@ classdef SVEclass < handle
             %   domainFactor = 1.5;               % ballast particles are distributed insidet domainFactor*LBox
             
             % Break script if gravel sieve is wrongly defined
-            if sum(gravelSieve) ~=1 || length(ballastRadii) ~= length(gravelSieve)
+            if round(sum(gravelSieve),2) ~=1 || length(ballastRadii) ~= length(gravelSieve)
                 error('gravel sieve wrongly defined')
             end
             
