@@ -93,7 +93,7 @@ classdef SVEclass < handle
             
             % Break script if gravel sieve is wrongly defined
             if sum(gravelSieve) ~=1 || length(ballastRadii) ~= length(gravelSieve)
-                disp('gravel sieve wrongly defined')
+                error('gravel sieve wrongly defined')
             end
             
             
