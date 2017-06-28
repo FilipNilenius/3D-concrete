@@ -620,7 +620,7 @@ classdef SVEclass < handle
         % transient analysis
         function LinTransSolver(obj,initialCondition,time)
             % LinTransSolver(initialCondition,time):
-            %   Solves the linear system Cå+Ka=f for a 3D mesostrucutre 
+            %   Solves the linear system CÃ¥+Ka=f for a 3D mesostrucutre 
             %   of concrete. Robin type BC are implemented.
             disp('---solves transient diffusion problem---')
             
@@ -854,18 +854,18 @@ classdef SVEclass < handle
         %   solution vector 'a'.
         
         % Load topology
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'boundaryDofs');
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'elementMaterial');
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel');
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'EdofElasticity')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Nodedofs')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'BoundaryNodes')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'boundaryElement')
-        load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'BEdof')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'boundaryDofs');
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'elementMaterial');
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel');
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'EdofElasticity')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Nodedofs')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'BoundaryNodes')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'boundaryElement')
+        load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'BEdof')
         
         elementMaterial = elementMaterial;
         boundaryElement = boundaryElement;
@@ -940,7 +940,6 @@ classdef SVEclass < handle
         
         loadStep = obj.startLoadStep;
         incrementSwitch = 1;
-        matlabpool open local
         while loadStep <= obj.endLoadStep
             disp(sprintf('\n'))
             disp(['load step ',num2str(loadStep),':'])
@@ -1006,35 +1005,34 @@ classdef SVEclass < handle
 %             while norm(residual)>obj.residualTOL
             try
                 for ii=1:3
-
                     % assemble K
                     K.full = sparse2([],[],[],meshProperties.ndof.elasticity,meshProperties.ndof.elasticity);
-
+                    
                     tic
                     for assemPart = 1:4
                         if assemPart == 1
-                            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'firstSparseVecElasticity');
+                            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'firstSparseVecElasticity');
                             X = cell(length(firstSparseVecElasticity.first),1);
                             elements = firstSparseVecElasticity.first;
                             iVec = firstSparseVecElasticity.i;
                             jVec = firstSparseVecElasticity.j;
                             clear firstSparseVecElasticity
                         elseif assemPart ==2
-                            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'secondSparseVecElasticity');
+                            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'secondSparseVecElasticity');
                             X = cell(length(secondSparseVecElasticity.second),1);
                             elements = secondSparseVecElasticity.second;
                             iVec = secondSparseVecElasticity.i;
                             jVec = secondSparseVecElasticity.j;
                             clear secondSparseVecElasticity
                         elseif assemPart ==3
-                            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'thirdSparseVecElasticity');
+                            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'thirdSparseVecElasticity');
                             X = cell(length(thirdSparseVecElasticity.third),1);
                             elements = thirdSparseVecElasticity.third;
                             iVec = thirdSparseVecElasticity.i;
                             jVec = thirdSparseVecElasticity.j;
                             clear thirdSparseVecElasticity
                         elseif assemPart == 4
-                            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'fourthSparseVecElasticity');
+                            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'fourthSparseVecElasticity');
                             X = cell(length(fourthSparseVecElasticity.fourth),1);
                             elements = fourthSparseVecElasticity.fourth;
                             iVec = fourthSparseVecElasticity.i;
@@ -1092,7 +1090,9 @@ classdef SVEclass < handle
                         maxPrincipalStrain.eigenvalue(elements) = cell2mat(partMaxPrincipalStrain);
 
                     end
-
+                    poolobj = gcp('nocreate');
+                    delete(poolobj);
+                    
 
                     clear X iVec jVec
 
@@ -1164,7 +1164,6 @@ classdef SVEclass < handle
                incrementSwitch = 0;
             end
         end
-        matlabpool close
         end
         function computeElementCrackArea(obj,chosenTimeSteps)
             load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
@@ -1191,11 +1190,11 @@ classdef SVEclass < handle
             % Written by Filip Nilenius, 2013-08-15
             % Last edited on 2013-11-13
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'elementMaterial');
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'elementMaterial');
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'Edof')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
             
             % creat paraview folder if needed
             if ~exist([obj.path2Realization,'/paraview'], 'dir')
@@ -1232,26 +1231,26 @@ classdef SVEclass < handle
                 fprintf(fid,'LOOKUP_TABLE default\n');
                 fprintf(fid,'%d \n',currentDamage');
                 fprintf(fid,'\n');
-    %             fprintf(fid,'SCALARS strain_xx float 1\n');
-    %             fprintf(fid,'LOOKUP_TABLE default\n');
-    %             fprintf(fid,'%d\n',Strains(:,1)');
-    %             fprintf(fid,'\n');
-    %             fprintf(fid,'SCALARS strain_yy float 1\n');
-    %             fprintf(fid,'LOOKUP_TABLE default\n');
-    %             fprintf(fid,'%d\n',Strains(:,2)');
-    %             fprintf(fid,'\n');
-    %             fprintf(fid,'SCALARS strain_zz float 1\n');
-    %             fprintf(fid,'LOOKUP_TABLE default\n');
-    %             fprintf(fid,'%d\n',Strains(:,3)');
-    %             fprintf(fid,'\n');
-    %             fprintf(fid,'SCALARS stress_xx float 1\n');
-    %             fprintf(fid,'LOOKUP_TABLE default\n');
-    %             fprintf(fid,'%d\n',Stresses(:,1)');
-    %             fprintf(fid,'\n');
-    %             fprintf(fid,'SCALARS stress_yy float 1\n');
-    %             fprintf(fid,'LOOKUP_TABLE default\n');
-    %             fprintf(fid,'%d\n',Stresses(:,2)');
-    %             fprintf(fid,'\n');
+%                 fprintf(fid,'SCALARS strain_xx float 1\n');
+%                 fprintf(fid,'LOOKUP_TABLE default\n');
+%                 fprintf(fid,'%d\n',Strains(:,1)');
+%                 fprintf(fid,'\n');
+%                 fprintf(fid,'SCALARS strain_yy float 1\n');
+%                 fprintf(fid,'LOOKUP_TABLE default\n');
+%                 fprintf(fid,'%d\n',Strains(:,2)');
+%                 fprintf(fid,'\n');
+%                 fprintf(fid,'SCALARS strain_zz float 1\n');
+%                 fprintf(fid,'LOOKUP_TABLE default\n');
+%                 fprintf(fid,'%d\n',Strains(:,3)');
+%                 fprintf(fid,'\n');
+%                 fprintf(fid,'SCALARS stress_xx float 1\n');
+%                 fprintf(fid,'LOOKUP_TABLE default\n');
+%                 fprintf(fid,'%d\n',Stresses(:,1)');
+%                 fprintf(fid,'\n');
+%                 fprintf(fid,'SCALARS stress_yy float 1\n');
+%                 fprintf(fid,'LOOKUP_TABLE default\n');
+%                 fprintf(fid,'%d\n',Stresses(:,2)');
+%                 fprintf(fid,'\n');
 %                 fprintf(fid,'SCALARS stress_zz float 1\n');
 %                 fprintf(fid,'LOOKUP_TABLE default\n');
 %                 fprintf(fid,'%d\n',Stresses(:,3)');
@@ -1272,16 +1271,16 @@ classdef SVEclass < handle
             end
         end
         function homogenizedStress(obj,loadSteps)
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'elementMaterial');
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'equivalentStrain')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'EdofElasticity')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'currentDamage')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'currentKappa')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'boundaryElement')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'elementMaterial');
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'equivalentStrain')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'EdofElasticity')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'currentDamage')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'currentKappa')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'boundaryElement')
             
             [ex,ey,ez] = obj.prepareKe(meshProperties.dx);
             [B,detJ,wp]=computeBmatrixElasticity(ex,ey,ez,obj.nGaussPoints);
