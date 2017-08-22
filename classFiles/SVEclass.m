@@ -349,9 +349,7 @@ classdef SVEclass < handle
                 end
                 D(:,i) = obj.LinStatSolver();
             end
-            disp(' ')
-            disp('effective diffusivity tensor:')
-            disp(D)
+            dlmwrite([obj.path2Realization,'effective-diffusivity-tensor_nx=',num2str(obj.nx),'.txt'],D,'delimiter','\t')
         end
         function homoDiffRow = LinStatSolver(obj,varargin)
         % a = LinStatSolver(H,obj.sliceVector):
