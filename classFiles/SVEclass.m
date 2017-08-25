@@ -825,9 +825,9 @@ classdef SVEclass < handle
         function [spatialDirection,slicedPlane] = plotTransientFront(obj)
             % [spatialDirection,slicedPlane] = plotTransientFront():
             %   Plots transient front for all time steps.
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
-            load(['TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
-            load([obj.transientName,'.mat']);
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
+            load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
+            load([obj.path2Realization,obj.transientName,'.mat']);
             
             [ff nts] = size(a_store);
             slicedPlane.mean = zeros(meshProperties.nx,1);
@@ -836,13 +836,13 @@ classdef SVEclass < handle
             
             for iTime=1:nts
                 for i=0:meshProperties.nx-1
-                    [nodeSlice foo] = find(abs(NodeCoords(:,2)-i*meshProperties.dx)<10*eps);
+                    [nodeSlice foo] = find(abs(NodeCoords(:,2)-i*meshProperties.dx)<100*eps);
                     slicedPlane.mean(i+1) = mean(a_store(nodeSlice,iTime));
                     slicedPlane.std(i+1)   = std(a_store(nodeSlice,iTime));
                 end
                 hold on
                 plot(spatialDirection,slicedPlane.mean)
-                xlabel('spatial direction [cm]')
+                xlabel('spatial direction')
             end
         end
         % linear elasticity
