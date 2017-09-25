@@ -28,13 +28,15 @@ cube.shrinkRate = 0.000000000001;
 % initiate speed of sphere
 sphere(1).velocity = -1 + (1 --1)*rand(1,3);
 sphere(1).velocity = sphere(1).velocity/norm(sphere(1).velocity);
+sphere(1).velocity = [1,0,0];
 sphere(2).velocity = -1 + (1 --1)*rand(1,3);
 sphere(2).velocity = sphere(2).velocity/norm(sphere(2).velocity);
+sphere(2).velocity = [0,1,0]*0.0001;
 sphere(3).velocity = -1 + (1 --1)*rand(1,3);
 sphere(3).velocity = sphere(3).velocity/norm(sphere(3).velocity);
 % sphere.speed = 0.1;
 
-numberOfEvents = 3;
+numberOfEvents = 2;
 numberOfSpheres = 3;
 
 for i=1:numberOfEvents
@@ -45,6 +47,7 @@ for i=1:numberOfEvents
         sphere(j).coordinates = sphere(j).coordinates + collitionPosition;
         sphere(j).velocity = speed.new;
     end
+    findMinimumSphereCollisionTime(sphere)
 end
 
 hold on
@@ -55,6 +58,16 @@ end
 axis([0 1 0 1 0 1])
 axis square
 grid on
+
+
+function findMinimumSphereCollisionTime(sphere)
+% ref:http://geomalgorithms.com/a07-_distance.html#dist3D_Segment_to_Segment
+wnull = sphere(1).coordinates - sphere(2).coordinates;
+
+t = -wnull*(sphere(1).velocity - sphere(2).velocity)'/norm(sphere(1).velocity - sphere(2).velocity)^2
+d = norm(sphere(1).coordinates + t*sphere(1).velocity - (sphere(2).coordinates + t*sphere(2).velocity))
+
+end
 
 
 function [collitionPosition,speed] = findDistance(cube,sphere)
