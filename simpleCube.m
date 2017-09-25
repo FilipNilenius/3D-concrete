@@ -2,8 +2,12 @@ clear all
 close all
 clc
 
-sphere.radius = 0.021;
-sphere.coordinates = [0.5,0.5,0.5];
+sphere(1).radius = 0.021;
+sphere(1).coordinates = [0.25,0.5,0.5];
+sphere(2).radius = 0.021;
+sphere(2).coordinates = [0.5,0.25,0.5];
+sphere(3).radius = 0.021;
+sphere(3).coordinates = [0.5,0.5,0.25];
 
 cube.corners = [0,0,0
                 0,0,1
@@ -22,26 +26,35 @@ cube.planes.zfront.normal = [ 0, 0, 1];
 cube.shrinkRate = 0.000000000001;
 
 % initiate speed of sphere
-sphere.velocity = -1 + (1 --1)*rand(1,3);
-sphere.velocity = sphere.velocity/norm(sphere.velocity);
-sphere.velocity = [1,0,0];
+sphere(1).velocity = -1 + (1 --1)*rand(1,3);
+sphere(1).velocity = sphere(1).velocity/norm(sphere(1).velocity);
+sphere(2).velocity = -1 + (1 --1)*rand(1,3);
+sphere(2).velocity = sphere(2).velocity/norm(sphere(2).velocity);
+sphere(3).velocity = -1 + (1 --1)*rand(1,3);
+sphere(3).velocity = sphere(3).velocity/norm(sphere(3).velocity);
 % sphere.speed = 0.1;
 
-for i=1:5
-    coordiantes(i,:) = sphere.coordinates;
-    % determine collition distance to closest wall and update position
-    [collitionPosition,speed] = findDistance(cube,sphere);
-    sphere.coordinates = sphere.coordinates + collitionPosition;
-    sphere.velocity = speed.new;
-    
+numberOfEvents = 3;
+numberOfSpheres = 3;
+
+for i=1:numberOfEvents
+    for j=1:numberOfSpheres
+        sphere(j).storedCoordiantes(i,:) = sphere(j).coordinates;
+        % determine collition distance to closest wall and update position
+        [collitionPosition,speed] = findDistance(cube,sphere(j));
+        sphere(j).coordinates = sphere(j).coordinates + collitionPosition;
+        sphere(j).velocity = speed.new;
+    end
 end
 
-% plot3(coordiantes(:,1),coordiantes(:,2),coordiantes(:,3))
-% bubbleplot3(coordiantes(:,1),coordiantes(:,2),coordiantes(:,3),sphere.radius*ones(length(coordiantes),1));
-
-% axis([0 1 0 1 0 1])
-% axis square
-% grid on
+hold on
+for i=1:numberOfSpheres
+    plot3(sphere(i).storedCoordiantes(:,1),sphere(i).storedCoordiantes(:,2),sphere(i).storedCoordiantes(:,3))
+    bubbleplot3(sphere(i).storedCoordiantes(:,1),sphere(i).storedCoordiantes(:,2),sphere(i).storedCoordiantes(:,3),sphere(i).radius*ones(length(sphere(i).storedCoordiantes),1));
+end
+axis([0 1 0 1 0 1])
+axis square
+grid on
 
 
 function [collitionPosition,speed] = findDistance(cube,sphere)
