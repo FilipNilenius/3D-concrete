@@ -29,41 +29,47 @@ cube.shrinkRate = 0.000000000001;
 % initiate speed of gravel
 gravel(1).velocity = -1 + (1 --1)*rand(1,3);
 gravel(1).velocity = gravel(1).velocity/norm(gravel(1).velocity);
-% gravel(1).velocity = [1,0,0];
+gravel(1).velocity = [1,0,0];
 gravel(2).velocity = -1 + (1 --1)*rand(1,3);
 gravel(2).velocity = gravel(2).velocity/norm(gravel(2).velocity);
-% gravel(2).velocity = [0,-1,0];
+gravel(2).velocity = [0,-1,0];
 gravel(3).velocity = -1 + (1 --1)*rand(1,3);
 gravel(3).velocity = gravel(2).velocity/norm(gravel(2).velocity);
 % gravel(3).velocity = [0,-1,0];
 % gravel.speed = 0.1;
 
-numberOfEvents = 20;
-numberOfgravels = 3;
+numberOfEvents = 2;
+numberOfgravels = 2;
 
 for i=1:numberOfEvents
-    gravelCollisionTime = findMinimumgravelCollisionTime(gravel)
-    for j=1:numberOfgravels
-        gravel(j).storedCoordinates(i,:) = gravel(j).coordinates;
-        % determine collition distance to closest wall and update position
-        [collitionPosition,speed] = findDistance(cube,gravel(j));
-        gravel(j).coordinates = gravel(j).coordinates + collitionPosition;
-        gravel(j).velocity = speed.new;
+    gravelCollisionTime = findMinimumgravelCollisionTime(gravel);
+    [timeToWallCollision velocity] = findMinimumGravelWallCollisionTimee(cube,gravel);
+    
+    t = min([gravelCollisionTime timeToWallCollision])
+    % update gravel coordinates at time of collision and speed(s) for
+    % colliding gravels/gravel-wall
+    for j=1:length(gravel)
+        gravel(j).coordinates = gravel(j).coordinates + t*gravel(j).velocity;
+        
+        
+        % store coordinates for plotting
+        allCoordinates.gravel(j).event(i,:) = gravel(j).coordinates;
     end
 end
 
 hold on
 for i=1:numberOfgravels
-    plot3(gravel(i).storedCoordinates(:,1),gravel(i).storedCoordinates(:,2),gravel(i).storedCoordinates(:,3))
-    bubbleplot3(gravel(i).storedCoordinates(:,1),gravel(i).storedCoordinates(:,2),gravel(i).storedCoordinates(:,3),gravel(i).radius*ones(length(gravel(i).storedCoordinates),1));
+    plot3(allCoordinates.gravel(i).event(:,1),allCoordinates.gravel(i).event(:,2),allCoordinates.gravel(i).event(:,3))
+    bubbleplot3(allCoordinates.gravel(i).event(:,1),allCoordinates.gravel(i).event(:,2),allCoordinates.gravel(i).event(:,3),gravel(i).radius*ones(length(allCoordinates.gravel(i).event),1));
 end
 axis([0 1 0 1 0 1])
 axis square
-grid on
+% grid on
+% hold off
 
 
 function collisionTime = findMinimumgravelCollisionTime(gravel)
-% create all gravel interactions
+% create all gravel interaction combinations
 c = combnk(1:length(gravel),2);
 collisionTime = inf*ones(length(c),1);
 for i=1:length(c)
@@ -91,75 +97,42 @@ collisionTime = min(collisionTime);
 end
 
 
-function [collitionPosition,speed] = findDistance(cube,gravel)
-lnull = gravel.coordinates;
-l = gravel.velocity;
+function [timeToWallCollision collidingGravel velocity] = findMinimumGravelWallCollisionTimee(cube,gravel)
+% all cominations between gravls and walls
+% https://se.mathworks.com/matlabcentral/answers/98191-how-can-i-obtain-all-possible-combinations-of-given-vectors-in-matlab#answer_107541
+[A,B] = meshgrid(1:length(gravel),1:6);
+c=cat(2,A',B');
+d=reshape(c,[],2);
 
-k = 0;
-for i=1:6
-    % check which plan the gravel will intersect with
-    % https://en.wikipedia.org/wiki/Line%E2%80%93plane_intersection
-    if i==1
-        pnull = cube.corners(1,:);
-        n = cube.planes.xback.normal;
-        cosangle = gravel.velocity*cube.planes.xback.normal'/(norm(gravel.velocity)*norm(cube.planes.xback.normal));
-        
-        % determine time until impact between gravel and moving plane
-        deltat(i) = (cube.corners(1,1) - gravel.coordinates(1) - gravel.radius)/(gravel.velocity(1) - cube.shrinkRate);
-    elseif i==2
-        pnull = cube.corners(5,:);
-        n = cube.planes.xfront.normal;
-        cosangle = gravel.velocity*cube.planes.xfront.normal'/(norm(gravel.velocity)*norm(cube.planes.xfront.normal));
-        
-        % determine time until impact between gravel and moving plane
-        deltat(i) = (cube.corners(5,1) - gravel.coordinates(1) - gravel.radius)/(gravel.velocity(1) - cube.shrinkRate);
-    elseif i==3
-        pnull = cube.corners(1,:);
-        n = cube.planes.yback.normal;
-        cosangle = gravel.velocity*cube.planes.yback.normal'/(norm(gravel.velocity)*norm(cube.planes.yback.normal));
-        
-        % determine time until impact between gravel and moving plane
-        deltat(i) = (cube.corners(1,2) - gravel.coordinates(2) - gravel.radius)/(gravel.velocity(2) - cube.shrinkRate);
-    elseif i==4
-        pnull = cube.corners(3,:);
-        n = cube.planes.yfront.normal;
-        cosangle = gravel.velocity*cube.planes.yfront.normal'/(norm(gravel.velocity)*norm(cube.planes.yfront.normal));
-        
-        % determine time until impact between gravel and moving plane
-        deltat(i) = (cube.corners(3,2) - gravel.coordinates(2) - gravel.radius)/(gravel.velocity(2) - cube.shrinkRate);
-    elseif i==5
-        pnull = cube.corners(1,:);
-        n = cube.planes.zback.normal;
-        cosangle = gravel.velocity*cube.planes.zback.normal'/(norm(gravel.velocity)*norm(cube.planes.zback.normal));
-        
-        % determine time until impact between gravel and moving plane
-        deltat(i) = (cube.corners(1,3) - gravel.coordinates(3) - gravel.radius)/(gravel.velocity(3) - cube.shrinkRate);
-    else
-        pnull = cube.corners(2,:);
-        n = cube.planes.zfront.normal;
-        cosangle = gravel.velocity*cube.planes.zfront.normal'/(norm(gravel.velocity)*norm(cube.planes.zfront.normal));
-        
-        % determine time until impact between gravel and moving plane
-        deltat(i) = (cube.corners(2,3) - gravel.coordinates(3) - gravel.radius)/(gravel.velocity(3) - cube.shrinkRate);
-    end
-    
-    d = (pnull - lnull)*n'/(l*n');
-    
-    % adjust so that impact occures a gravel surface, not its center
-    d = d - gravel.radius/cosangle;
-    collitionVector = d*l + lnull - gravel.coordinates;
-    if collitionVector*gravel.velocity' > 10*eps
-        k = k + 1;
-        collitionVectors(k,1:3) = collitionVector;
-        
-        % speed component perpendicular to the plane
-        speed.perpendicular(k,:) = norm(gravel.velocity)*cosangle*n;
-        speed.parallel(k,:) = gravel.velocity - speed.perpendicular(k,:);
-        speed.new(k,:) = speed.parallel(k,:) + -speed.perpendicular(k,:);
-    end
+
+xnull(1,:) = cube.corners(1,:);
+xnull(2,:) = cube.corners(5,:);
+xnull(3,:) = cube.corners(1,:);
+xnull(4,:) = cube.corners(3,:);
+xnull(5,:) = cube.corners(1,:);
+xnull(6,:) = cube.corners(2,:);
+n(1,:) = cube.planes.xback.normal;
+n(2,:) = cube.planes.xfront.normal;
+n(3,:) = cube.planes.yback.normal;
+n(4,:) = cube.planes.yfront.normal;
+n(5,:) = cube.planes.zback.normal;
+n(6,:) = cube.planes.zfront.normal;
+
+timeToWallCollision = inf*ones(length(d),1);
+for i=1:length(d)
+    timeToWallCollision(i) = (gravel(d(i,1)).radius + n(d(i,2),:)*(xnull(d(i,2),:) - gravel(d(i,1)).coordinates)')/(n(d(i,2),:)*gravel(d(i,1)).velocity');
 end
 
-[collitionDistance,wall] = min(sqrt(sum(collitionVectors.^2,2)));
-collitionPosition = collitionVectors(wall,:);
-speed.new = speed.new(wall,:);
+% identify which gravel will collide with which wall
+timeToWallCollision(timeToWallCollision<0) = inf;
+[timeToWallCollision index] = min(timeToWallCollision);
+collidingGravel = d(index,1);
+wall = d(index,2);
+
+% new speed after collision
+% https://math.stackexchange.com/questions/1225494/component-of-a-vector-perpendicular-to-another-vector
+velocity.old = gravel(collidingGravel).velocity;
+velocity.perpendicular = gravel(collidingGravel).velocity*n(wall,:)'/(n(wall,:)*n(wall,:)')*n(wall,:);
+velocity.parallel = velocity.old - velocity.perpendicular;
+velocity.new = velocity.parallel + -velocity.perpendicular;
 end
