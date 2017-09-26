@@ -4,13 +4,17 @@ classdef gravel
     
     properties
         radius
-        coordinate
-        velocity = struct('current',[],'atCollision',[]);
-        timeAtCollision
-        storedCoordinates
+        coordinates
+        velocity
+    end
+    properties (Dependent)
+        mass
     end
     
     methods
+        function a = get.mass(obj)
+            a = 4/3*pi*obj.radius^3;
+        end
     end
     
 end
