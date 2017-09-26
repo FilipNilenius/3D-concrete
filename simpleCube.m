@@ -29,31 +29,38 @@ cube.shrinkRate = 0.000000000001;
 % initiate speed of gravel
 gravel(1).velocity = -1 + (1 --1)*rand(1,3);
 gravel(1).velocity = gravel(1).velocity/norm(gravel(1).velocity);
-gravel(1).velocity = [1,0,0];
+% gravel(1).velocity = [1,0,0];
 gravel(2).velocity = -1 + (1 --1)*rand(1,3);
 gravel(2).velocity = gravel(2).velocity/norm(gravel(2).velocity);
-gravel(2).velocity = [0,-1,0];
+% gravel(2).velocity = [0,-1,0];
 gravel(3).velocity = -1 + (1 --1)*rand(1,3);
-gravel(3).velocity = gravel(2).velocity/norm(gravel(2).velocity);
+gravel(3).velocity = gravel(3).velocity/norm(gravel(2).velocity);
 % gravel(3).velocity = [0,-1,0];
 % gravel.speed = 0.1;
 
-numberOfEvents = 2;
-numberOfgravels = 2;
+numberOfEvents = 200;
+numberOfgravels = 3;
+
 
 for i=1:numberOfEvents
     gravelCollisionTime = findMinimumgravelCollisionTime(gravel);
-    [timeToWallCollision velocity] = findMinimumGravelWallCollisionTimee(cube,gravel);
+    gravelCollisionTime = inf;
+    [timeToWallCollision collidingGravel velocity] = findMinimumGravelWallCollisionTimee(cube,gravel);
     
-    t = min([gravelCollisionTime timeToWallCollision])
-    % update gravel coordinates at time of collision and speed(s) for
-    % colliding gravels/gravel-wall
+    
+    
+    timeToNextEvent = min([gravelCollisionTime timeToWallCollision]);
+    % update gravel coordinates at time of collision
     for j=1:length(gravel)
-        gravel(j).coordinates = gravel(j).coordinates + t*gravel(j).velocity;
-        
+        gravel(j).coordinates = gravel(j).coordinates + timeToNextEvent*gravel(j).velocity;
         
         % store coordinates for plotting
         allCoordinates.gravel(j).event(i,:) = gravel(j).coordinates;
+    end
+    
+    % update velocity after collision
+    if timeToWallCollision < gravelCollisionTime % if next event is wall collision
+        gravel(collidingGravel).velocity = velocity.new;
     end
 end
 
@@ -62,7 +69,7 @@ for i=1:numberOfgravels
     plot3(allCoordinates.gravel(i).event(:,1),allCoordinates.gravel(i).event(:,2),allCoordinates.gravel(i).event(:,3))
     bubbleplot3(allCoordinates.gravel(i).event(:,1),allCoordinates.gravel(i).event(:,2),allCoordinates.gravel(i).event(:,3),gravel(i).radius*ones(length(allCoordinates.gravel(i).event),1));
 end
-axis([0 1 0 1 0 1])
+% axis([0 1 0 1 0 1])
 axis square
 % grid on
 % hold off
@@ -124,7 +131,7 @@ for i=1:length(d)
 end
 
 % identify which gravel will collide with which wall
-timeToWallCollision(timeToWallCollision<0) = inf;
+timeToWallCollision(timeToWallCollision<100*eps) = inf;
 [timeToWallCollision index] = min(timeToWallCollision);
 collidingGravel = d(index,1);
 wall = d(index,2);
