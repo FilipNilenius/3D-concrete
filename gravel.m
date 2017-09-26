@@ -4,7 +4,7 @@ classdef gravel
     
     properties
         radius
-        coordinate = struct('current',[],'atCollision',[]);
+        coordinate
         velocity = struct('current',[],'atCollision',[]);
         timeAtCollision
         storedCoordinates
