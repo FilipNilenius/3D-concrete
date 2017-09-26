@@ -38,11 +38,11 @@ gravel(3).velocity = gravel(2).velocity/norm(gravel(2).velocity);
 % gravel(3).velocity = [0,-1,0];
 % gravel.speed = 0.1;
 
-numberOfEvents = 2000;
+numberOfEvents = 20;
 numberOfgravels = 3;
 
 for i=1:numberOfEvents
-    findMinimumgravelCollisionTime(gravel)
+    gravelCollisionTime = findMinimumgravelCollisionTime(gravel)
     for j=1:numberOfgravels
         gravel(j).storedCoordinates(i,:) = gravel(j).coordinates;
         % determine collition distance to closest wall and update position
@@ -62,9 +62,10 @@ axis square
 grid on
 
 
-function findMinimumgravelCollisionTime(gravel)
+function collisionTime = findMinimumgravelCollisionTime(gravel)
 % create all gravel interactions
 c = combnk(1:length(gravel),2);
+collisionTime = inf*ones(length(c),1);
 for i=1:length(c)
     % solving for time when gravels collide
     % http://geomalgorithms.com/a07-_distance.html#dist3D_Segment_to_Segment
@@ -80,13 +81,13 @@ for i=1:length(c)
     % only solutions that are real valued and positive
     if isreal(t.plus) && isnan(t.plus)~=1 && isinf(t.plus)~=1 && t.plus > 0
         if t.minus < 0
-            t.CPA = t.plus;
+            collisionTime(i) = t.plus;
         else
-            t.CPA = t.minus;
+            collisionTime(i) = t.minus;
         end
-        t.CPA
     end
 end
+collisionTime = min(collisionTime);
 end
 
 
