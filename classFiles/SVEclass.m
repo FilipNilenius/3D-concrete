@@ -97,7 +97,7 @@ classdef SVEclass < handle
             end
             
             % create gravel set
-            numberOfGravel = 10000;
+            numberOfGravel = 1000;
             ballastMass = 4/3*pi*ballastRadii.^3;
             ratios = gravelSieve./ballastMass;
             numberOfGravelInSieve = round(ratios*numberOfGravel/sum(ratios));
@@ -113,26 +113,54 @@ classdef SVEclass < handle
                 end
                 [gravelSet(range).radius] = deal(ballastRadii(i));
             end
-                
             
+            % create all gravelSet interaction combinations
+            gravelCombinations = combnk(1:length(gravelSet),2);
             
-            % % determine upper and lower [a,b] bound of interval where gragates
-            % % are places in side SVE
-            % x
-            a.x = -(domainFactor - 1 - (domainFactor - 1)*obj.boundary.x.back)/2*Lbox;
-            b.x = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.x.front)/2)*Lbox;
-            % y
-            a.y = -(domainFactor - 1 - (domainFactor - 1)*obj.boundary.y.back)/2*Lbox;
-            b.y = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.y.front)/2)*Lbox;
-            % z
-            a.z = -(domainFactor - 1 - (domainFactor - 1)*obj.boundary.z.back)/2*Lbox;
-            b.z = (1 + (domainFactor - 1 - (domainFactor - 1)*obj.boundary.z.front)/2)*Lbox;
-            
-            centroid = zeros(200000,3);
-            radius = zeros(200000,1);
+            cubeSize = 100;
+            cube.corners = [0,0,0
+                            0,0,1
+                            0,1,0
+                            0,1,1
+                            1,0,0
+                            1,0,1
+                            1,1,0
+                            1,1,1]*cubeSize;
+            cube.planes.xback.normal  = [-1, 0, 0];
+            cube.planes.xfront.normal = [ 1, 0, 0];
+            cube.planes.yback.normal  = [ 0,-1, 0];
+            cube.planes.yfront.normal = [ 0, 1, 0];
+            cube.planes.zback.normal  = [ 0, 0,-1];
+            cube.planes.zfront.normal = [ 0, 0, 1];
+            cube.shrinkRate = -0.001;
             
             % seed the random number generator based on the current time
             rng('shuffle')
+            
+            % distribute gravel inside cube
+            gravelSet(1).coordinates = 0 + (cubeSize -0)*rand(1,3);
+            k = 2;
+            while k <= length(gravelSet)
+                for i=1:k-1
+                    gravelSet(k).coordinates = 0 + (cubeSize -0)*rand(1,3);
+                    gravelDistans = norm(gravelSet(k).coordinates - gravelSet(i).coordinates);
+                    sumOfRadii = gravelSet(k).radius + gravelSet(i).radius;
+                    if gravelDistans < sumOfRadii
+                        k = k - 1;
+                        break
+                    end
+                end
+                k = k + 1;
+            end
+            
+            for i=1:length(gravelSet)
+                coords(i,:) = gravelSet(i).coordinates;
+                radiis(i) = gravelSet(i).radius;
+            end
+            
+            
+            bubbleplot3(coords(:,1),coords(:,2),coords(:,3),radiis);
+            axis square
             
             aggVol = 0;
             k = 0;
