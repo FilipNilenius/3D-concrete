@@ -96,6 +96,25 @@ classdef SVEclass < handle
                 error('gravel sieve wrongly defined')
             end
             
+            % create gravel set
+            numberOfGravel = 10000;
+            ballastMass = 4/3*pi*ballastRadii.^3;
+            ratios = gravelSieve./ballastMass;
+            numberOfGravelInSieve = round(ratios*numberOfGravel/sum(ratios));
+            
+            gravelSet(1:sum(numberOfGravelInSieve)) = gravel;
+            cumSumGravelSieve = cumsum(numberOfGravelInSieve);
+            
+            for i=1:length(numberOfGravelInSieve)
+                if i==1
+                    range = 1:cumSumGravelSieve(i);
+                else
+                    range = cumSumGravelSieve(i-1)+1:cumSumGravelSieve(i);
+                end
+                [gravelSet(range).radius] = deal(ballastRadii(i));
+            end
+                
+            
             
             % % determine upper and lower [a,b] bound of interval where gragates
             % % are places in side SVE
