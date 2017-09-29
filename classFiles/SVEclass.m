@@ -97,7 +97,7 @@ classdef SVEclass < handle
             end
             
             % create gravel set
-            numberOfGravel = 1000;
+            numberOfGravel = 100;
             ballastMass = 4/3*pi*ballastRadii.^3;
             ratios = gravelSieve./ballastMass;
             numberOfGravelInSieve = round(ratios*numberOfGravel/sum(ratios));
@@ -114,10 +114,16 @@ classdef SVEclass < handle
                 [gravelSet(range).radius] = deal(ballastRadii(i));
             end
             
+            % total gravel volume
+            totalVolume = 0;
+            for j=1:length(gravelSet)
+                totalVolume = totalVolume + gravelSet(j).mass;
+            end
+            
             % create all gravelSet interaction combinations
             gravelCombinations = combnk(1:length(gravelSet),2);
             
-            cubeSize = 100;
+            cubeSize = 10;
             cube.corners = [0,0,0
                             0,0,1
                             0,1,0
