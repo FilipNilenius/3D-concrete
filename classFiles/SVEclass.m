@@ -2155,7 +2155,7 @@ classdef SVEclass < handle
 
             % only solutions that are real valued and positive
             if isreal(tplus) && isnan(tplus)~=1 && isinf(tplus)~=1 && tplus > 100*eps
-                if tminus < 0
+                if tminus < 100*eps
                     collisionTime(i) = tplus;
                 else
                     collisionTime(i) = tminus;
