@@ -168,41 +168,6 @@ classdef SVEclass < handle
             bubbleplot3(coords(:,1),coords(:,2),coords(:,3),radiis);
             axis square
             
-            aggVol = 0;
-            k = 0;
-            for iballastRadii = 1:length(ballastRadii)
-                while aggVol < sum(gravelSieve(1:iballastRadii))*aggFrac*(Lbox*domainFactor)^3
-                    k = k + 1;
-                    
-                    radius(k) = ballastRadii(iballastRadii);
-                    
-                    % determine centroid coordinate
-                    centroid(k,1) =  (a.x + radius(k)) + ((b.x - radius(k)) - (a.x + radius(k)))*rand;
-                    centroid(k,2) =  (a.y + radius(k)) + ((b.y - radius(k)) - (a.y + radius(k)))*rand;
-                    centroid(k,3) =  (a.z + radius(k)) + ((b.z - radius(k)) - (a.z + radius(k)))*rand;
-                    
-                    if k==1
-                        aggVol = aggVol + 4/3*pi*radius(k)^3;
-                    else
-                        ccVector = bsxfun(@minus,centroid(1:k-1,:),centroid(k,:)); % c-c vector between current and all other ballast particles
-                        normccVector = sqrt(sum(abs(ccVector).^2,2)); % the norm of ccVector
-                        diffNormRadii = normccVector - (radius(1:k-1) + radius(k)); % difference between norm and radius
-                        B = (diffNormRadii<0);
-                        if any(B) % if the norm of ccVector is smaller that 2 radii (ie overlapping) remove new ballast particle
-                            centroid(k,:) = zeros(1,3);
-                            radius(k) = 0;
-                            k = k - 1;
-                        else % add ballast volume to accumulated volume
-                            aggVol = aggVol + 4/3*pi*radius(k)^3;
-                            dispFrac = aggVol/(aggFrac*(Lbox*domainFactor)^3);
-                        end
-                    end
-                end
-            end
-            
-            % remove unpopulated entries in vector/matrix
-            centroid = centroid(any(centroid,2),:);
-            radius = radius(radius>0);
             
             % Saves SVE data
             savefile = [obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'];
