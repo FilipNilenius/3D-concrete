@@ -97,7 +97,7 @@ classdef SVEclass < handle
             end
             
             % create gravel set
-            numberOfGravel = 10;
+            numberOfGravel = 100;
             ballastMass = 4/3*pi*ballastRadii.^3;
             ratios = gravelSieve./ballastMass;
             numberOfGravelInSieve = round(ratios*numberOfGravel/sum(ratios));
@@ -118,7 +118,7 @@ classdef SVEclass < handle
             % create all gravelSet interaction combinations
             gravelCombinations = combnk(1:length(gravelSet),2);
             
-            cubeSize = 10;
+            cube.size = 10;
             cube.corners = [0,0,0
                             0,0,1
                             0,1,0
@@ -126,24 +126,24 @@ classdef SVEclass < handle
                             1,0,0
                             1,0,1
                             1,1,0
-                            1,1,1]*cubeSize;
+                            1,1,1]*cube.size;
             cube.planes.xback.normal  = [-1, 0, 0];
             cube.planes.xfront.normal = [ 1, 0, 0];
             cube.planes.yback.normal  = [ 0,-1, 0];
             cube.planes.yfront.normal = [ 0, 1, 0];
             cube.planes.zback.normal  = [ 0, 0,-1];
             cube.planes.zfront.normal = [ 0, 0, 1];
-            cube.shrinkRate = -0.0000001;
+            cube.shrinkRate = -0.01;
             
             % seed the random number generator based on the current time
             rng('shuffle')
             
             % distribute gravel inside cube
-            gravelSet(1).coordinates = 0 + (cubeSize -0)*rand(1,3);
+            gravelSet(1).coordinates = 0.2*cube.size + (0.8*cube.size - 0.2*cube.size)*rand(1,3);
             k = 2;
             while k <= length(gravelSet)
                 for i=1:k-1
-                    gravelSet(k).coordinates = 0 + (cubeSize -0)*rand(1,3);
+                    gravelSet(k).coordinates = 0.2*cube.size + (0.8*cube.size - 0.2*cube.size)*rand(1,3);
                     gravelDistans = norm(gravelSet(k).coordinates - gravelSet(i).coordinates);
                     sumOfRadii = gravelSet(k).radius + gravelSet(i).radius;
                     if gravelDistans < sumOfRadii
@@ -161,22 +161,21 @@ classdef SVEclass < handle
                 allCoordinates.gravelSet(j).event(1,:) = gravelSet(j).coordinates;
                 gravelSet(j).velocity = -1 + (1 --1)*rand(1,3);
                 gravelSet(j).velocity = gravelSet(j).velocity/norm(gravelSet(j).velocity);
-                gravelSet(j).velocity
             end
             
             % pack aggregates
-            numberOfEvents =400000;
+            numberOfEvents =10000;
             for i=1:numberOfEvents
-                i
                 % compute time to next collision event, either gravel-gravel or
                 % gravel-wall
                 [gravelSetCollisionTime collidingGravels velocities] = obj.findMinimumgravelSetCollisionTime(gravelSet,gravelCombinations);
                 [timeToWallCollision collidingGravel velocity] = obj.findMinimumgravelSetWallCollisionTimee(cube,gravelSet);
                 timeToNextEvent = min([gravelSetCollisionTime timeToWallCollision]);
-
+                
                 % update gravelSet coordinates at time of collision
                 for j=1:length(gravelSet)
                     gravelSet(j).coordinates = gravelSet(j).coordinates + timeToNextEvent*gravelSet(j).velocity;
+                    
                     % store coordinates for plotting
                     allCoordinates.gravelSet(j).event(i+1,:) = gravelSet(j).coordinates;
                 end
@@ -185,9 +184,8 @@ classdef SVEclass < handle
                 cube.corners(5,:) = cube.corners(5,:) + timeToNextEvent*cube.shrinkRate*cube.planes.xfront.normal;
                 cube.corners(3,:) = cube.corners(3,:) + timeToNextEvent*cube.shrinkRate*cube.planes.yfront.normal;
                 cube.corners(2,:) = cube.corners(2,:) + timeToNextEvent*cube.shrinkRate*cube.planes.zfront.normal;
-
-                savedCube(i) = cube.corners(5,1);
-
+                cube.size = cube.corners(5,1);
+                
                 % update gravel velocity after collision
                 if timeToWallCollision < gravelSetCollisionTime % if next event is wall collision
                     gravelSet(collidingGravel).velocity = velocity.new;
@@ -197,7 +195,7 @@ classdef SVEclass < handle
                 end
                 
                 % display volume fraction
-%                 disp(totalVolume/cube.corners(5,1)^3);
+                disp(totalVolume/cube.size^3);
             end
             
             for i=1:length(gravelSet)
@@ -2178,10 +2176,7 @@ classdef SVEclass < handle
             [A,B] = meshgrid(1:length(gravelSet),1:6);
             c=cat(2,A',B');
             d=reshape(c,[],2);
-
-
-
-
+            
             xnull(1,:) = cube.corners(1,:);
             xnull(2,:) = cube.corners(5,:);
             xnull(3,:) = cube.corners(1,:);
@@ -2206,13 +2201,15 @@ classdef SVEclass < handle
             for i=1:length(d)
                 timeToWallCollision(i) = (n(d(i,2),:)*(xnull(d(i,2),:) - gravelSet(d(i,1)).coordinates)' - gravelSet(d(i,1)).radius)/(n(d(i,2),:)*(gravelSet(d(i,1)).velocity - v(d(i,2),:))');
             end
-
+            
             % identify which gravelSet will collide with which wall
-            timeToWallCollision(timeToWallCollision<100*eps) = inf;
+            timeToWallCollision(timeToWallCollision<0) = inf;
+            
             [timeToWallCollision index] = min(timeToWallCollision);
+            timeToWallCollision = 0.9*timeToWallCollision; % to avoid numerical errors
             collidingGravel = d(index,1);
             wall = d(index,2);
-
+            
             % new speed after collision
             % https://math.stackexchange.com/questions/1225494/component-of-a-vector-perpendicular-to-another-vector
             velocity.old = gravelSet(collidingGravel).velocity;
