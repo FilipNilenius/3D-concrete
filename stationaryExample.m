@@ -6,6 +6,7 @@
 
 clear all
 close all
+clc
 
 addpath([pwd,'/classFiles'])
 addpath([pwd,'/misc'])
