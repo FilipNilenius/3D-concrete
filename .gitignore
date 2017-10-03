@@ -45,4 +45,5 @@ Temporary Items
 # MATLAB (produced) files
 *.asv
 SVEs/*
+misc/codegen/*
 codeDevelopment.m
