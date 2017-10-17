@@ -16,6 +16,5 @@ classdef gravel
             a = 4/3*pi*obj.radius^3;
         end
     end
-    
 end
 
