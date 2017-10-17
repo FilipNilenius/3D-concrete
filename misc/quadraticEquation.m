@@ -1,4 +1,4 @@
-function [tminus,tplus] = quadraticEquation(x,v,r,c)
+function [t] = quadraticEquation(x,v,r,c)
 % computes the coefficients p,q, for quadratic function
 %
 % x = coordinates for all gravel
@@ -8,8 +8,7 @@ function [tminus,tplus] = quadraticEquation(x,v,r,c)
 
 p = 0;
 q = 0;
-tplus = zeros(length(c),1);
-tminus = zeros(length(c),1);
+t = inf*ones(length(c),1);
 for i=1:length(c)
     % solving for time when gravelSets collide
     % http://geomalgorithms.com/a07-_distance.html#dist3D_Segment_to_Segment
@@ -19,8 +18,12 @@ for i=1:length(c)
     q = (wnull*wnull' - (r(c(i,1)) + r(c(i,2)))^2)/norm(v(c(i,1),:) - v(c(i,2),:))^2;
     
     if (p/2)^2 - q > 0
-        tplus(i) = -p/2 + sqrt((p/2)^2 - q);
-        tminus(i) = -p/2 - sqrt((p/2)^2 - q);
+        t(i) = min([-p/2 + sqrt((p/2)^2 - q) -p/2 - sqrt((p/2)^2 - q)]);
+    end
+    
+    % only keep relevant times
+    if t(i) < 0
+        t(i) = inf;
     end
 end
 end
