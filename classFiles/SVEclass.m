@@ -16,6 +16,7 @@ classdef SVEclass < handle
         realizationNumber
         aggFrac
         Lbox
+        size
         nx
         transientName
         nGaussPoints = 2
@@ -97,9 +98,9 @@ classdef SVEclass < handle
             end
             
             % parameters
-            numberOfGravel = 1000;
-            numberOfEvents = 1000;
-            cube.size = 1;
+            numberOfGravel = 100;
+            numberOfEvents = 10000;
+            cube.size = 2;
             cube.shrinkRate = -0.1;
             
             % create gravel set
@@ -237,7 +238,8 @@ classdef SVEclass < handle
             
             tic
             load([obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'])
-            dx = obj.Lbox/(obj.nx-1);
+            obj.size = cube.size;
+            dx = obj.size/(obj.nx-1);
             ny = obj.nx;
             nz = obj.nx;
             nel = obj.nx*ny*nz;
@@ -250,6 +252,8 @@ classdef SVEclass < handle
             VoxelCoords(:,3) = col3(:)';
             VoxelCoords(:,4) = col4(:)';
             
+            centroid = reshape([gravelSet.coordinates],3,length(gravelSet))';
+            radius = [gravelSet.radius]';
             centro.x = centroid(:,1);
             centro.y = centroid(:,2);
             centro.z = centroid(:,3);
@@ -257,17 +261,17 @@ classdef SVEclass < handle
             centro.x = centro.x + radius;
             a = find(centro.x<0);
             centro.x = centro.x -2*radius;
-            b = find(centro.x>obj.Lbox);
+            b = find(centro.x>obj.size);
 
             centro.y = centro.y + radius;
             c = find(centro.y<0);
             centro.y = centro.y -2*radius;
-            d = find(centro.y>obj.Lbox);
+            d = find(centro.y>obj.size);
 
             centro.z = centro.z + radius;
             e = find(centro.z<0);
             centro.z = centro.z -2*radius;
-            f = find(centro.z>obj.Lbox);
+            f = find(centro.z>obj.size);
             
             a = [a' b' c' d' e' f']';
             
@@ -316,7 +320,7 @@ classdef SVEclass < handle
 
             meshProperties.ndof = max(max(Edof(:,2:end)));
             meshProperties.nel  = length(Edof(:,1));
-            meshProperties.dx   = obj.Lbox/(meshProperties.nel^(1/3));
+            meshProperties.dx   = obj.size/(meshProperties.nel^(1/3));
             meshProperties.nx   = obj.nx;
             
             % Finds ITZ voxels
@@ -324,12 +328,12 @@ classdef SVEclass < handle
             elementMaterial = Edof(:,1);
             
             % Determines boundary dofs
-            plusFaceNodes  = find(max(NodeCoords(:,2:end)')>0.999*obj.Lbox);
-            minusFaceNodes = find(min(NodeCoords(:,2:end)')<0.001*obj.Lbox);
+            plusFaceNodes  = find(max(NodeCoords(:,2:end)')>0.999*obj.size);
+            minusFaceNodes = find(min(NodeCoords(:,2:end)')<0.001*obj.size);
             BoundaryNodes  = unique([plusFaceNodes minusFaceNodes]);
             
             % Determines 2D boundary elements along all faces
-            [BEdof] = obj.boundaryEdof(Edof,meshProperties,NodeCoords,obj.Lbox);
+            [BEdof] = obj.boundaryEdof(Edof,meshProperties,NodeCoords,obj.size);
             
             % Generates sparse matrix structure % K = sparse(sparseVec.i,sparseVec.j,X,ndof,ndof)
             sparseVec.i = zeros(meshProperties.nel*8,8,'uint32');
@@ -396,7 +400,7 @@ classdef SVEclass < handle
             % [numAggFrac numArea] = computeAggFracandITZarea():
             %   Returns aggregate fraction and total ITZ area.
             load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'interfaceVoxel','Edof','meshProperties')
-            numAggFrac = 1 - (length(Edof(Edof(:,1)==0))*meshProperties.dx^3 + sum(interfaceVoxel.volume.cement))/obj.Lbox^3;
+            numAggFrac = 1 - (length(Edof(Edof(:,1)==0))*meshProperties.dx^3 + sum(interfaceVoxel.volume.cement))/obj.size^3;
             numArea = sum(interfaceVoxel.area.ITZ);
         end
         % stationary analysis
@@ -440,10 +444,12 @@ classdef SVEclass < handle
         load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'sparseVec');
         load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
         load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'BoundaryNodes')
+        load([obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'],'cube')
         
         % needed for transparency for parfor
         elementMaterial = elementMaterial;
         interfaceVoxel = interfaceVoxel;
+        obj.size = cube.size;
         
         crackDiffusivityTensor = cell(meshProperties.nel,1);
         crackDiffusivityTensor(:) = {zeros(3)};
@@ -522,9 +528,9 @@ classdef SVEclass < handle
 
         % Computes Dirichlet B.C. based on grad(v^M)
         a = zeros(meshProperties.ndof.diffusion,1);
-        a(BoundaryNodes) = obj.H.grad(1)*(NodeCoords(BoundaryNodes,2) - 0.5*obj.Lbox) +...
-                           obj.H.grad(2)*(NodeCoords(BoundaryNodes,3) - 0.5*obj.Lbox) +...
-                           obj.H.grad(3)*(NodeCoords(BoundaryNodes,4) - 0.5*obj.Lbox) +...
+        a(BoundaryNodes) = obj.H.grad(1)*(NodeCoords(BoundaryNodes,2) - 0.5*obj.size) +...
+                           obj.H.grad(2)*(NodeCoords(BoundaryNodes,3) - 0.5*obj.size) +...
+                           obj.H.grad(3)*(NodeCoords(BoundaryNodes,4) - 0.5*obj.size) +...
                            obj.H.bar;
 
         clear NodeCoords;
@@ -905,7 +911,7 @@ classdef SVEclass < handle
             [ff nts] = size(a_store);
             slicedPlane.mean = zeros(meshProperties.nx,1);
             slicedPlane.std = zeros(meshProperties.nx,1);
-            spatialDirection = linspace(0,obj.Lbox,meshProperties.nx);
+            spatialDirection = linspace(0,obj.size,meshProperties.nx);
             
             for iTime=1:nts
                 for i=0:meshProperties.nx-1
@@ -1055,7 +1061,7 @@ classdef SVEclass < handle
                     totalStrain = totalStrain + reducedStrainIncrement;
                 end
             end
-            disp(['Total displacement: ',num2str(totalStrain*obj.Lbox)])
+            disp(['Total displacement: ',num2str(totalStrain*obj.size)])
             disp(['Total strain: ',num2str(totalStrain)])
             disp(['Displacement increment: ',num2str(reducedStrainIncrement)])
             
@@ -1439,7 +1445,7 @@ classdef SVEclass < handle
         
         elementMaterial = Edof(:,1);
         nx = obj.nx;
-        dx = obj.Lbox/(nx-1);
+        dx = obj.size/(nx-1);
         ny = nx;
         nz = nx;
         nel = nx*ny*nz;
@@ -1591,7 +1597,7 @@ classdef SVEclass < handle
         
         
         % Determines 2D boundary elements along all faces
-        [boundaryDofs] = obj.findBoundaryDofs(NodeCoords,Nodedofs,meshProperties,Lbox);
+        [boundaryDofs] = obj.findBoundaryDofs(NodeCoords,Nodedofs,meshProperties,obj.size);
         
         saveVoxelCoords = [obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'];
         save(saveVoxelCoords,'EdofElasticity','firstSparseVecElasticity','secondSparseVecElasticity','thirdSparseVecElasticity','fourthSparseVecElasticity','meshProperties','boundaryDofs','elementMaterial','Nodedofs','-v7.3','-append');
@@ -1608,17 +1614,17 @@ classdef SVEclass < handle
             elementCenterCoords = NodeCoords(Edof(iel,2),2:end) + [0.5 0.5 0.5]*meshProperties.dx;
             
 %             % x
-%             if elementCenterCoords(1) < meshProperties.dx || elementCenterCoords(1) > obj.Lbox - meshProperties.dx
+%             if elementCenterCoords(1) < meshProperties.dx || elementCenterCoords(1) > obj.size - meshProperties.dx
 %                 boundaryElement(iel) = 1;
 %             end
 %             
 %             % y
-%             if elementCenterCoords(2) < meshProperties.dx || elementCenterCoords(2) > obj.Lbox - meshProperties.dx
+%             if elementCenterCoords(2) < meshProperties.dx || elementCenterCoords(2) > obj.size - meshProperties.dx
 %                 boundaryElement(iel) = 1;
 %             end
             
             % z
-            if elementCenterCoords(3) < meshProperties.dx || elementCenterCoords(3) > obj.Lbox - meshProperties.dx
+            if elementCenterCoords(3) < meshProperties.dx || elementCenterCoords(3) > obj.size - meshProperties.dx
                 boundaryElement(iel) = 1;
             end
         end
@@ -1742,7 +1748,7 @@ classdef SVEclass < handle
                     end
                     
                     % check to see if aggregate cuts through SVE boundary
-                    if centroid(closestBallast,3) - radius(closestBallast) < 2*meshProperties.dx || centroid(closestBallast,3) + radius(closestBallast) > obj.Lbox - 2*meshProperties.dx
+                    if centroid(closestBallast,3) - radius(closestBallast) < 2*meshProperties.dx || centroid(closestBallast,3) + radius(closestBallast) > obj.size - 2*meshProperties.dx
                         interfaceVoxel.boundaryAggregate(iel) = 1;
                     end
                 end
