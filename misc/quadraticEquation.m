@@ -14,16 +14,19 @@ for i=1:length(c)
     % http://geomalgorithms.com/a07-_distance.html#dist3D_Segment_to_Segment
     % https://en.wikipedia.org/wiki/Quadratic_equation
     wnull = x(c(i,1),:) - x(c(i,2),:);
-    p = 2*wnull*(v(c(i,1),:) - v(c(i,2),:))'/norm(v(c(i,1),:) - v(c(i,2),:))^2;
-    q = (wnull*wnull' - (r(c(i,1)) + r(c(i,2)))^2)/norm(v(c(i,1),:) - v(c(i,2),:))^2;
     
-    if (p/2)^2 - q > 0
-        t(i) = min([-p/2 + sqrt((p/2)^2 - q) -p/2 - sqrt((p/2)^2 - q)]);
-    end
-    
-    % only keep relevant times
-    if t(i) < 0
-        t(i) = inf;
+    if norm(wnull) < 5*r(c(i,1)) % only check collision time within a 5 radii distance (for speed)
+        p = 2*wnull*(v(c(i,1),:) - v(c(i,2),:))'/norm(v(c(i,1),:) - v(c(i,2),:))^2;
+        q = (wnull*wnull' - (r(c(i,1)) + r(c(i,2)))^2)/norm(v(c(i,1),:) - v(c(i,2),:))^2;
+
+        if (p/2)^2 - q > 0
+            t(i) = min([-p/2 + sqrt((p/2)^2 - q) -p/2 - sqrt((p/2)^2 - q)]);
+        end
+
+        % only keep relevant times
+        if t(i) < 0
+            t(i) = inf;
+        end
     end
 end
 end
