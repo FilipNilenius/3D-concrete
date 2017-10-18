@@ -96,12 +96,16 @@ classdef SVEclass < handle
                 error('gravel sieve wrongly defined')
             end
             
-            % create gravel set
+            % parameters
             numberOfGravel = 1000;
+            numberOfEvents = 1000;
+            cube.size = 1;
+            cube.shrinkRate = -0.1;
+            
+            % create gravel set
             ballastMass = 4/3*pi*ballastRadii.^3;
             ratios = gravelSieve./ballastMass;
             numberOfGravelInSieve = round(ratios*numberOfGravel/sum(ratios));
-            
             gravelSet(1:sum(numberOfGravelInSieve)) = gravel;
             cumSumGravelSieve = cumsum(numberOfGravelInSieve);
             
@@ -118,7 +122,8 @@ classdef SVEclass < handle
             % create all gravelSet interaction combinations
             gravelCombinations = combnk(1:length(gravelSet),2);
             
-            cube.size = 8;
+            
+            % define cube corners and normals
             cube.corners = [0,0,0
                             0,0,1
                             0,1,0
@@ -133,22 +138,25 @@ classdef SVEclass < handle
             cube.planes.yfront.normal = [ 0, 1, 0];
             cube.planes.zback.normal  = [ 0, 0,-1];
             cube.planes.zfront.normal = [ 0, 0, 1];
-            cube.shrinkRate = -0.1;
+            
             
             % seed the random number generator based on the current time
             rng('shuffle')
             
             % distribute gravel inside cube
-            gravelSet(1).coordinates = 0.0*cube.size + (1.0*cube.size - 0.0*cube.size)*rand(1,3);
-            k = 2;
+            k = 1;
             while k <= length(gravelSet)
-                for i=1:k-1
-                    gravelSet(k).coordinates = 0.0*cube.size + (1.0*cube.size - 0.0*cube.size)*rand(1,3);
-                    gravelDistans = norm(gravelSet(k).coordinates - gravelSet(i).coordinates);
-                    sumOfRadii = gravelSet(k).radius + gravelSet(i).radius;
-                    if gravelDistans < sumOfRadii
-                        k = k - 1;
-                        break
+                bound.lower = 1.1*gravelSet(k).radius;
+                bound.upper = cube.size - 1.1*gravelSet(k).radius;
+                gravelSet(k).coordinates = bound.lower + (bound.upper - bound.lower)*rand(1,3);
+                if k >= 2
+                    for i=1:k-1
+                        gravelDistans = norm(gravelSet(k).coordinates - gravelSet(i).coordinates);
+                        sumOfRadii = gravelSet(k).radius + gravelSet(i).radius;
+                        if gravelDistans < sumOfRadii
+                            k = k - 1;
+                            break
+                        end
                     end
                 end
                 k = k + 1;
@@ -158,7 +166,6 @@ classdef SVEclass < handle
             totalVolume = 0;
             for j=1:length(gravelSet)
                 totalVolume = totalVolume + gravelSet(j).mass;
-                allCoordinates.gravelSet(j).event(1,:) = gravelSet(j).coordinates;
                 gravelSet(j).velocity = -1 + (1 --1)*rand(1,3);
                 gravelSet(j).velocity = gravelSet(j).velocity/norm(gravelSet(j).velocity);
             end
@@ -167,14 +174,15 @@ classdef SVEclass < handle
             disp(totalVolume/(cube.size)^3);
             
             % pack aggregates
-            numberOfEvents = 1;
+            v = VideoWriter('peaks.avi');
+            open(v);
             for i=1:numberOfEvents
                 
                 % compute time to next collision event, either gravel-gravel or
                 % gravel-wall
                 [gravelSetCollisionTime collidingGravels velocities] = obj.findMinimumgravelSetCollisionTime(gravelSet,gravelCombinations);
                 [timeToWallCollision collidingGravel velocity] = obj.findMinimumgravelSetWallCollisionTimee(cube,gravelSet);
-                timeToNextEvent = 0.8*min([gravelSetCollisionTime timeToWallCollision]); % to avoid numerical errors
+                timeToNextEvent = 0.8*min([gravelSetCollisionTime timeToWallCollision]); % 0.8 to avoid numerical errors
                 
                 % update gravelSet coordinates at time of collision
                 for j=1:length(gravelSet)
@@ -196,28 +204,29 @@ classdef SVEclass < handle
                     gravelSet(collidingGravels(2)).velocity = velocities.two.new;
                 end
                 % display volume fraction
-%                 disp(totalVolume/(cube.size)^3);
+                disp([totalVolume/(cube.size)^3 cube.size]);
+                
+%                 % make movie
+%                 coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
+%                 bubbleplot3(coords(:,1),coords(:,2),coords(:,3),[gravelSet.radius]');
+%                 axis([0 cube.size 0 cube.size 0 cube.size])
+%                 axis square
+%                 frame = getframe(gcf);
+%                 writeVideo(v,frame);
+%                 clf
             end
-            
-            % display volume fraction
-            disp(totalVolume/(cube.size)^3);
-            disp(cube.size);
-            
-            for i=1:length(gravelSet)
-                coords(i,:) = gravelSet(i).coordinates;
-                radiis(i) = gravelSet(i).radius;
-            end
+            close(v);
             
             % plot current state
             figure(2)
-            bubbleplot3(coords(:,1),coords(:,2),coords(:,3),radiis);
-            axis([0 cube.size 0 cube.size 0 cube.size])
+            coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
+            bubbleplot3(coords(:,1),coords(:,2),coords(:,3),[gravelSet.radius]');
             axis square
             
             
             % Saves SVE data
-%             savefile = [obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'];
-%             save(savefile,'centroid','radius','Lbox','domainFactor','ballastRadii','gravelSieve','aggFrac');
+            savefile = [obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'];
+            save(savefile,'gravelSet','cube','gravelSieve');
             
         end
         function meshSVE(obj)
@@ -2173,7 +2182,7 @@ classdef SVEclass < handle
             
             
             
-            [timeToWallCollision] = findTimeToWallCollision(...
+            [timeToWallCollision] = findTimeToWallCollision_mex(...
                                     xnull,...
                                     reshape([gravelSet.coordinates],3,length(gravelSet))',...
                                     reshape([gravelSet.velocity],3,length(gravelSet))',...
