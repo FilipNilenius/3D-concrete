@@ -98,15 +98,15 @@ classdef SVEclass < handle
             end
             
             % parameters
-            numberOfGravel = 100;
-            numberOfEvents = 10000;
+            numberOfGravel = 3000;
+            numberOfEvents = 100;
             cube.size = 2;
             cube.shrinkRate = -0.1;
             
             % create gravel set
             ballastMass = 4/3*pi*ballastRadii.^3;
             ratios = gravelSieve./ballastMass;
-            numberOfGravelInSieve = round(ratios*numberOfGravel/sum(ratios));
+            numberOfGravelInSieve = round(ratios*numberOfGravel/sum(ratios))
             gravelSet(1:sum(numberOfGravelInSieve)) = gravel;
             cumSumGravelSieve = cumsum(numberOfGravelInSieve);
             
@@ -143,6 +143,8 @@ classdef SVEclass < handle
             
             % seed the random number generator based on the current time
             rng('shuffle')
+            
+            
             
             % distribute gravel inside cube
             k = 1;
@@ -207,18 +209,12 @@ classdef SVEclass < handle
                 % display volume fraction
                 disp([totalVolume/(cube.size)^3 cube.size]);
                 
-%                 % make movie
-%                 coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
-%                 bubbleplot3(coords(:,1),coords(:,2),coords(:,3),[gravelSet.radius]');
-%                 axis([0 cube.size 0 cube.size 0 cube.size])
-%                 axis square
-%                 frame = getframe(gcf);
-%                 writeVideo(v,frame);
-%                 clf
+%                 obj.makeMovie(v,gravelSet,cube)
             end
             close(v);
+            close all
             
-            % plot current state
+%             % plot current state
             figure(2)
             coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
             bubbleplot3(coords(:,1),coords(:,2),coords(:,3),[gravelSet.radius]');
@@ -1611,7 +1607,7 @@ classdef SVEclass < handle
         
         boundaryElement = zeros(meshProperties.nel,1);
         for iel=1:meshProperties.nel
-            elementCenterCoords = NodeCoords(Edof(iel,2),2:end) + [0.5 0.5 0.5]*meshProperties.dx;
+            elementCenterCoords = NodeCoords(Edof(iel,2),2:end) + [0.3 0.3 0.3]*meshProperties.dx;
             
 %             % x
 %             if elementCenterCoords(1) < meshProperties.dx || elementCenterCoords(1) > obj.size - meshProperties.dx
@@ -2219,6 +2215,58 @@ classdef SVEclass < handle
             end
                 
             velocity.new = velocity.parallel + -velocity.perpendicular;
-            end
+        end
+        function makeMovie(obj,v,gravelSet,cube)
+            % make movie
+            coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
+            hold on
+            bubbleplot3(coords(:,1),coords(:,2),coords(:,3),[gravelSet.radius]');
+            plot3([0 1],[0 0],[0 0],'color',[0.3 0.3 0.3])
+            plot3([0 0],[0 1],[0 0],'color',[0.3 0.3 0.3])
+            plot3([0 0],[0 0],[0 1],'color',[0.3 0.3 0.3])
+            
+            plot3([1 1],[1 1],[0 1],'color',[0.3 0.3 0.3])
+            plot3([1 0],[1 1],[0 0],'color',[0.3 0.3 0.3])
+            plot3([1 1],[1 0],[0 0],'color',[0.3 0.3 0.3])
+            
+            plot3([1 1],[0 0],[1 0],'color',[0.3 0.3 0.3])
+            plot3([1 0],[0 0],[1 1],'color',[0.3 0.3 0.3])
+            plot3([1 1],[0 1],[1 1],'color',[0.3 0.3 0.3])
+            
+            plot3([0 0],[1 1],[1 0],'color',[0.3 0.3 0.3])
+            plot3([0 0],[1 0],[1 1],'color',[0.3 0.3 0.3])
+            plot3([0 1],[1 1],[1 1],'color',[0.3 0.3 0.3])
+            
+            
+            plot3([0 cube.size],[0 0],[0 0],'color','black','LineWidth',2)
+            plot3([0 0],[0 cube.size],[0 0],'color','black','LineWidth',2)
+            plot3([0 0],[0 0],[0 cube.size],'color','black','LineWidth',2)
+            
+            plot3([cube.size cube.size],[cube.size cube.size],[0 cube.size],'color','black','LineWidth',2)
+            plot3([cube.size 0],[cube.size cube.size],[0 0],'color','black','LineWidth',2)
+            plot3([cube.size cube.size],[cube.size 0],[0 0],'color','black','LineWidth',2)
+            
+            plot3([cube.size cube.size],[0 0],[cube.size 0],'color','black','LineWidth',2)
+            plot3([cube.size 0],[0 0],[cube.size cube.size],'color','black','LineWidth',2)
+            plot3([cube.size cube.size],[0 cube.size],[cube.size cube.size],'color','black','LineWidth',2)
+            
+            plot3([0 0],[cube.size cube.size],[cube.size 0],'color','black','LineWidth',2)
+            plot3([0 0],[cube.size 0],[cube.size cube.size],'color','black','LineWidth',2)
+            plot3([0 cube.size],[cube.size cube.size],[cube.size cube.size],'color','black','LineWidth',2)
+            axis([0 1 0 1 0 1])
+            set(gca,'xtick',[])
+            set(gca,'xticklabel',[])
+            set(gca,'ytick',[])
+            set(gca,'yticklabel',[])
+            set(gca,'ztick',[])
+            set(gca,'zticklabel',[])
+            set(gcf,'position',[0,0,720,720])
+            
+            axis square
+            hold off
+            frame = getframe(gcf);
+            writeVideo(v,frame);
+            clf
+        end
     end
 end
