@@ -85,7 +85,7 @@ classdef SVEclass < handle
             %
             % generates 3D mesocale structure of concrete
             %    
-                %   % example
+            %   % example
             %   ballastRadii = [20 8 4 2]/2/10;   % Radius in [cm]. From http://www.sciencedirect.com/science/article/pii/S0168874X05001563
             %   gravelSieve  = [.25 .25 .35 .15]; % Distribution in fraction. sum(gravelSieve) should be 1.0
             %   aggFrac      = 0.30;              % Aggregate volume fraction
@@ -98,9 +98,9 @@ classdef SVEclass < handle
             end
             
             % parameters
-            numberOfGravel = 3000;
-            numberOfEvents = 100;
-            cube.size = 2;
+            numberOfGravel = 10000;
+            numberOfEvents = 10;
+            cube.size = 10;
             cube.shrinkRate = -0.1;
             
             % create gravel set
@@ -121,7 +121,15 @@ classdef SVEclass < handle
             
             
             % create all gravelSet interaction combinations
-            gravelCombinations = combnk(1:length(gravelSet),2);
+            if ~exist([pwd,'/combmat'], 'dir')
+                mkdir([pwd,'/combmat']);
+            end
+            if exist([pwd,'/combmat/combmat_',num2str(numberOfGravel),'.mat'], 'file')
+                load([pwd,'/combmat/combmat_',num2str(numberOfGravel),'.mat'])
+            else
+                gravelCombinations = combnk(1:length(gravelSet),2);
+                save([pwd,'/combmat/combmat_',num2str(numberOfGravel),'.mat'],'gravelCombinations')
+            end
             
             
             % define cube corners and normals
