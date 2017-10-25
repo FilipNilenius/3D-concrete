@@ -121,15 +121,19 @@ classdef SVEclass < handle
             
             
             % create all gravelSet interaction combinations
-            if ~exist([pwd,'/combmat'], 'dir')
-                mkdir([pwd,'/combmat']);
+            n = length(gravelSet);
+            rows = (n - 1)*n/2;
+            gravelCombinations = zeros(rows,2);
+            
+            counter = 0;
+            for i=1:n-1
+                for j=i+1:n
+                    counter = counter + 1;
+                    gravelCombinations(counter,1) = i;
+                    gravelCombinations(counter,2) = j;
+                end
             end
-            if exist([pwd,'/combmat/combmat_',num2str(numberOfGravel),'.mat'], 'file')
-                load([pwd,'/combmat/combmat_',num2str(numberOfGravel),'.mat'])
-            else
-                gravelCombinations = combnk(1:length(gravelSet),2);
-                save([pwd,'/combmat/combmat_',num2str(numberOfGravel),'.mat'],'gravelCombinations')
-            end
+            clear n
             
             % create all gravel-wall interaction combinations
             [A,B] = meshgrid(1:length(gravelSet),1:6);
