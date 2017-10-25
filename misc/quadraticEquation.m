@@ -1,4 +1,4 @@
-function [t] = quadraticEquation(x,v,r,c)
+function [t] = quadraticEquation(x,v,r,c,t,gravelPairs)
 % computes the coefficients p,q, for quadratic function
 %
 % x = coordinates for all gravel
@@ -8,8 +8,8 @@ function [t] = quadraticEquation(x,v,r,c)
 
 p = 0;
 q = 0;
-t = inf*ones(length(c),1);
-for i=1:length(c)
+for j=1:length(gravelPairs)
+    i = gravelPairs(j);
     % solving for time when gravelSets collide
     % http://geomalgorithms.com/a07-_distance.html#dist3D_Segment_to_Segment
     % https://en.wikipedia.org/wiki/Quadratic_equation

@@ -98,15 +98,15 @@ classdef SVEclass < handle
             end
             
             % parameters
-            numberOfGravel = 10000;
-            numberOfEvents = 10;
-            cube.size = 10;
+            numberOfGravel = 200;
+            numberOfEvents = 1000;
+            cube.size = 4;
             cube.shrinkRate = -0.1;
             
             % create gravel set
             ballastMass = 4/3*pi*ballastRadii.^3;
             ratios = gravelSieve./ballastMass;
-            numberOfGravelInSieve = round(ratios*numberOfGravel/sum(ratios))
+            numberOfGravelInSieve = round(ratios*numberOfGravel/sum(ratios));
             gravelSet(1:sum(numberOfGravelInSieve)) = gravel;
             cumSumGravelSieve = cumsum(numberOfGravelInSieve);
             
@@ -130,6 +130,11 @@ classdef SVEclass < handle
                 gravelCombinations = combnk(1:length(gravelSet),2);
                 save([pwd,'/combmat/combmat_',num2str(numberOfGravel),'.mat'],'gravelCombinations')
             end
+            
+            % create all gravel-wall interaction combinations
+            [A,B] = meshgrid(1:length(gravelSet),1:6);
+            c=cat(2,A',B');
+            wallCombinations = reshape(c,[],2);
             
             
             % define cube corners and normals
@@ -185,20 +190,55 @@ classdef SVEclass < handle
             disp(totalVolume/(cube.size)^3);
             
             % pack aggregates
-            v = VideoWriter('peaks.avi');
-            open(v);
+            videoFile = VideoWriter('peaks.avi');
+            open(videoFile);
+            
+            % define empty matrices
+            gravelCollisionTimes = inf(length(gravelCombinations),1); % collision times for all gravel combinations
+            wallCollisionTimes = inf(length(wallCombinations),1); % collision times for all gravel combinations'
+            gravelPairs = 1:length(gravelCombinations);
+            
             for i=1:numberOfEvents
+                % finds min time of gravel-gravel collisions
+                [gravelCollisionTimes] = obj.findMinimumgravelSetCollisionTime(gravelSet,gravelCombinations,gravelCollisionTimes,gravelPairs);
+                [gravelCollisionTime gravelIndex] = min(gravelCollisionTimes);
                 
-                % compute time to next collision event, either gravel-gravel or
-                % gravel-wall
-                [gravelSetCollisionTime collidingGravels velocities] = obj.findMinimumgravelSetCollisionTime(gravelSet,gravelCombinations);
-                [timeToWallCollision collidingGravel velocity] = obj.findMinimumgravelSetWallCollisionTimee(cube,gravelSet);
-                timeToNextEvent = 0.8*min([gravelSetCollisionTime timeToWallCollision]); % 0.8 to avoid numerical errors
+                % finds time to next wall collision
+                [wallCollisionTimes] = obj.findMinimumgravelSetWallCollisionTimee(cube,gravelSet,wallCollisionTimes);
+                [wallCollisionTime wallIndex] = min(wallCollisionTimes);
+                
+                % find time to next event
+                timeToNextEvent = 0.8*min([gravelCollisionTime wallCollisionTime]); % 0.8 to avoid numerical errors
                 
                 % update gravelSet coordinates at time of collision
                 for j=1:length(gravelSet)
                     gravelSet(j).coordinates = gravelSet(j).coordinates + timeToNextEvent*gravelSet(j).velocity;
                 end
+                
+                % update time vectors
+                gravelCollisionTimes = gravelCollisionTimes - timeToNextEvent;
+                wallCollisionTimes = wallCollisionTimes - timeToNextEvent;
+                
+                % new combinations matrices
+                if wallCollisionTime < gravelCollisionTime
+                    collidingGravel = wallCombinations(wallIndex,1);
+                    
+                    gravelPairs = union(find(gravelCombinations(:,1)==collidingGravel),...
+                                   find(gravelCombinations(:,2)==collidingGravel)); % indices in gravelCombination matrxi where colliding gravel exists
+                               
+                    gravelCollisionTimes(gravelPairs) = inf;
+                else
+                    collidingGravels = [gravelCombinations(gravelIndex,1) gravelCombinations(gravelIndex,2)];
+                    
+                    subSetOne = union(find(gravelCombinations(:,1)==collidingGravels(1)),...
+                                      find(gravelCombinations(:,2)==collidingGravels(1)));
+                    subSetTwo = union(find(gravelCombinations(:,1)==collidingGravels(2)),...
+                                      find(gravelCombinations(:,2)==collidingGravels(2)));
+                    gravelPairs = union(subSetOne,subSetTwo);
+                    
+                    gravelCollisionTimes(gravelPairs) = inf;
+                end
+                
                 
                 % update cube corners (shrinking cube) at time of collision
                 cube.corners(5,:) = cube.corners(5,:) + timeToNextEvent*cube.shrinkRate*cube.planes.xfront.normal;
@@ -208,21 +248,67 @@ classdef SVEclass < handle
                                 
                 
                 % update gravel velocity after collision
-                if timeToWallCollision < gravelSetCollisionTime % if next event is wall collision
-                    gravelSet(collidingGravel).velocity = velocity.new;
+                if wallCollisionTime < gravelCollisionTime % if next event is wall collision
+                    % new speed after collision
+                    % https://math.stackexchange.com/questions/1225494/component-of-a-vector-perpendicular-to-another-vector
+                    xnull(1,:) = cube.corners(1,:);
+                    xnull(2,:) = cube.corners(5,:);
+                    xnull(3,:) = cube.corners(1,:);
+                    xnull(4,:) = cube.corners(3,:);
+                    xnull(5,:) = cube.corners(1,:);
+                    xnull(6,:) = cube.corners(2,:);
+                    n(1,:) = cube.planes.xback.normal;
+                    n(2,:) = cube.planes.xfront.normal;
+                    n(3,:) = cube.planes.yback.normal;
+                    n(4,:) = cube.planes.yfront.normal;
+                    n(5,:) = cube.planes.zback.normal;
+                    n(6,:) = cube.planes.zfront.normal;
+                    v(1,:) = n(1,:)*0;
+                    v(2,:) = n(2,:)*cube.shrinkRate;
+                    v(3,:) = n(3,:)*0;
+                    v(4,:) = n(4,:)*cube.shrinkRate;
+                    v(5,:) = n(5,:)*0;
+                    v(6,:) = n(6,:)*cube.shrinkRate;
+                    
+                    collidingGravel = wallCombinations(wallIndex,1);
+                    wall = wallCombinations(wallIndex,2);
+
+                    velocity.old = gravelSet(collidingGravel).velocity;
+                    velocity.perpendicular = gravelSet(collidingGravel).velocity*n(wall,:)'/(n(wall,:)*n(wall,:)')*n(wall,:);
+                    velocity.parallel = velocity.old - velocity.perpendicular;
+
+                    % make sure that the perpendicular velocity is greater than the
+                    % shrink rate of the cube. If not, make it 1.1 times shrink
+                    % rate
+                    if norm(velocity.perpendicular) < abs(cube.shrinkRate)
+                        velocity.perpendicular = velocity.perpendicular/norm(velocity.perpendicular)*1.1*cube.shrinkRate;
+                    end
+
+                    gravelSet(collidingGravel).velocity = velocity.parallel + -velocity.perpendicular;
                 else % if next event is gravel-gravel collision
-                    gravelSet(collidingGravels(1)).velocity = velocities.one.new;
-                    gravelSet(collidingGravels(2)).velocity = velocities.two.new;
+                    % compute updated speeds after collision
+                    collidingGravels = [gravelCombinations(gravelIndex,1) gravelCombinations(gravelIndex,2)];
+                    Gnull = gravelSet(gravelCombinations(gravelIndex,1)).velocity - gravelSet(gravelCombinations(gravelIndex,2)).velocity;
+                    n = gravelSet(gravelCombinations(gravelIndex,1)).coordinates - gravelSet(gravelCombinations(gravelIndex,2)).coordinates;
+                    n = n/norm(n);
+                    gravelSet(collidingGravels(1)).velocity = gravelSet(gravelCombinations(gravelIndex,1)).velocity - (n*Gnull')*2*gravelSet(gravelCombinations(gravelIndex,2)).mass/(gravelSet(gravelCombinations(gravelIndex,1)).mass + gravelSet(gravelCombinations(gravelIndex,2)).mass)*n;
+                    gravelSet(collidingGravels(2)).velocity = gravelSet(gravelCombinations(gravelIndex,2)).velocity + (n*Gnull')*2*gravelSet(gravelCombinations(gravelIndex,1)).mass/(gravelSet(gravelCombinations(gravelIndex,1)).mass + gravelSet(gravelCombinations(gravelIndex,2)).mass)*n;
                 end
                 % display volume fraction
                 disp([totalVolume/(cube.size)^3 cube.size]);
                 
-%                 obj.makeMovie(v,gravelSet,cube)
+%                 obj.makeMovie(videoFile,gravelSet,cube)
+%                 coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
+%                 bubbleplot3(coords(:,1),coords(:,2),coords(:,3),[gravelSet.radius]');
+%                 axis([0 cube.size 0 cube.size 0 cube.size])
+%                 axis square
+%                 drawnow
+%                 clf
             end
-            close(v);
+            close(videoFile);
             close all
             
-%             % plot current state
+            % plot current state
             figure(2)
             coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
             bubbleplot3(coords(:,1),coords(:,2),coords(:,3),[gravelSet.radius]');
@@ -2150,21 +2236,15 @@ classdef SVEclass < handle
             end
         end
         end
-        function [collisionTime collidingGravels velocity] = findMinimumgravelSetCollisionTime(obj,gravelSet,gravelCombinations)
-        [collisionTime] = quadraticEquation_mex(reshape([gravelSet.coordinates],3,length(gravelSet))',reshape([gravelSet.velocity],3,length(gravelSet))',...
-                     [gravelSet.radius]',gravelCombinations);
+        function [collisionTime collidingGravels velocity] = findMinimumgravelSetCollisionTime(obj,gravelSet,gravelCombinations,gravelCollisionTimes,gravelPairs)
+        [collisionTime] = quadraticEquation(reshape([gravelSet.coordinates],3,length(gravelSet))',reshape([gravelSet.velocity],3,length(gravelSet))',...
+                     [gravelSet.radius]',gravelCombinations,gravelCollisionTimes,gravelPairs);
         
-        [collisionTime index] = min(collisionTime);
-        collidingGravels = [gravelCombinations(index,1) gravelCombinations(index,2)];
+        
 
-        % compute updated speeds after collision
-        Gnull = gravelSet(gravelCombinations(index,1)).velocity - gravelSet(gravelCombinations(index,2)).velocity;
-        n = gravelSet(gravelCombinations(index,1)).coordinates - gravelSet(gravelCombinations(index,2)).coordinates;
-        n = n/norm(n);
-        velocity.one.new = gravelSet(gravelCombinations(index,1)).velocity - (n*Gnull')*2*gravelSet(gravelCombinations(index,2)).mass/(gravelSet(gravelCombinations(index,1)).mass + gravelSet(gravelCombinations(index,2)).mass)*n;
-        velocity.two.new = gravelSet(gravelCombinations(index,2)).velocity + (n*Gnull')*2*gravelSet(gravelCombinations(index,1)).mass/(gravelSet(gravelCombinations(index,1)).mass + gravelSet(gravelCombinations(index,2)).mass)*n;
+        
         end
-        function [timeToWallCollision collidingGravel velocity] = findMinimumgravelSetWallCollisionTimee(obj,cube,gravelSet)
+        function [timeToWallCollision] = findMinimumgravelSetWallCollisionTimee(obj,cube,gravelSet,wallCollisionTimes)
             % all cominations between gravls and walls
             % https://se.mathworks.com/matlabcentral/answers/98191-how-can-i-obtain-all-possible-combinations-of-given-vectors-in-matlab#answer_107541
             [A,B] = meshgrid(1:length(gravelSet),1:6);
@@ -2192,37 +2272,23 @@ classdef SVEclass < handle
             
             
             
-            [timeToWallCollision] = findTimeToWallCollision_mex(...
+            [timeToWallCollision] = findTimeToWallCollision(...
                                     xnull,...
                                     reshape([gravelSet.coordinates],3,length(gravelSet))',...
                                     reshape([gravelSet.velocity],3,length(gravelSet))',...
                                     v,...
                                     [gravelSet.radius]',...
                                     n,...
-                                    d);
+                                    d,...
+                                    wallCollisionTimes);
             
             
             % identify which gravelSet will collide with which wall
             timeToWallCollision(timeToWallCollision<0) = inf;
             
-            [timeToWallCollision index] = min(timeToWallCollision);
-            collidingGravel = d(index,1);
-            wall = d(index,2);
             
-            % new speed after collision
-            % https://math.stackexchange.com/questions/1225494/component-of-a-vector-perpendicular-to-another-vector
-            velocity.old = gravelSet(collidingGravel).velocity;
-            velocity.perpendicular = gravelSet(collidingGravel).velocity*n(wall,:)'/(n(wall,:)*n(wall,:)')*n(wall,:);
-            velocity.parallel = velocity.old - velocity.perpendicular;
             
-            % make sure that the perpendicular velocity is greater than the
-            % shrink rate of the cube. If not, make it 1.1 times shrink
-            % rate
-            if norm(velocity.perpendicular) < abs(cube.shrinkRate)
-                velocity.perpendicular = velocity.perpendicular/norm(velocity.perpendicular)*1.1*cube.shrinkRate;
-            end
-                
-            velocity.new = velocity.parallel + -velocity.perpendicular;
+            
         end
         function makeMovie(obj,v,gravelSet,cube)
             % make movie
