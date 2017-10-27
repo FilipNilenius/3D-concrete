@@ -80,7 +80,7 @@ classdef SVEclass < handle
                 mkdir(obj.path2Realization);
             end
         end
-        function generateSVE(obj,aggFrac,ballastRadii,gravelSieve,Lbox,domainFactor)
+        function generateSVE(obj,ballastRadii,gravelSieve,numberOfGravel)
             % generateSVE(obj,aggFrac,ballastRadii,gravelSieve,Lbox,domainFactor)
             %
             % generates 3D mesocale structure of concrete
@@ -98,9 +98,7 @@ classdef SVEclass < handle
             end
             
             % parameters
-            numberOfGravel = 1500;
-            numberOfEvents = 10000;
-            cube.size = 4.2;
+            cube.size = obj.Lbox;
             cube.shrinkRate = -0.1;
             
             % create gravel set
@@ -222,7 +220,8 @@ classdef SVEclass < handle
             combinationRows.gravel = [1:length(gravelCombinations)]';
             combinationRows.wall = [1:length(wallCombinations)]';
             
-            for i=1:numberOfEvents
+            volumeFraction = 0;
+            while volumeFraction < obj.aggFrac
                 
                 % finds min time of gravel-gravel collisions
                 [gravelCollisionTimes] = quadraticEquation_mex(reshape([gravelSet.coordinates],3,length(gravelSet))',reshape([gravelSet.velocity],3,length(gravelSet))',...
@@ -254,7 +253,6 @@ classdef SVEclass < handle
                 % new combinations matrices
                 if wallCollisionTime < gravelCollisionTime
                     collidingGravel = wallCombinations(wallIndex,1);
-                    
                     
                     one = find(gravelCombinations(:,1)==collidingGravel);
                     two = find(gravelCombinations(:,2)==collidingGravel);
@@ -327,7 +325,8 @@ classdef SVEclass < handle
                 end
                 
                 % display volume fraction
-                disp([totalVolume/(cube.size)^3 cube.size]);
+                volumeFraction = totalVolume/(cube.size)^3;
+                disp([volumeFraction cube.size]);
                 
 %                 obj.makeMovie(videoFile,gravelSet,cube)
 %                 coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
