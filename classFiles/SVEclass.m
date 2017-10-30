@@ -328,22 +328,16 @@ classdef SVEclass < handle
                 volumeFraction = totalVolume/(cube.size)^3;
                 
 %                 obj.makeMovie(videoFile,gravelSet,cube)
-%                 coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
-%                 bubbleplot3(coords(:,1),coords(:,2),coords(:,3),[gravelSet.radius]');
-%                 axis([0 cube.size 0 cube.size 0 cube.size])
-%                 axis square
-%                 drawnow
-%                 clf
             end
             disp(['SVE size after packing: ',num2str(cube.size)]);
             close(videoFile);
             close all
             
-%             % plot current state
-%             figure(2)
-%             coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
-%             bubbleplot3(coords(:,1),coords(:,2),coords(:,3),[gravelSet.radius]');
-%             axis square
+            % plot final state
+            figure(2)
+            coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
+            bubbleplot3(coords(:,1),coords(:,2),coords(:,3),[gravelSet.radius]');
+            axis square
             
             
             % Saves SVE data
@@ -2272,21 +2266,21 @@ classdef SVEclass < handle
             coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
             hold on
             bubbleplot3(coords(:,1),coords(:,2),coords(:,3),[gravelSet.radius]');
-            plot3([0 1],[0 0],[0 0],'color',[0.3 0.3 0.3])
-            plot3([0 0],[0 1],[0 0],'color',[0.3 0.3 0.3])
-            plot3([0 0],[0 0],[0 1],'color',[0.3 0.3 0.3])
+            plot3([0 obj.Lbox],[0 0],[0 0],'color',[0.3 0.3 0.3])
+            plot3([0 0],[0 obj.Lbox],[0 0],'color',[0.3 0.3 0.3])
+            plot3([0 0],[0 0],[0 obj.Lbox],'color',[0.3 0.3 0.3])
             
-            plot3([1 1],[1 1],[0 1],'color',[0.3 0.3 0.3])
-            plot3([1 0],[1 1],[0 0],'color',[0.3 0.3 0.3])
-            plot3([1 1],[1 0],[0 0],'color',[0.3 0.3 0.3])
+            plot3([obj.Lbox obj.Lbox],[obj.Lbox obj.Lbox],[0 obj.Lbox],'color',[0.3 0.3 0.3])
+            plot3([obj.Lbox 0],[obj.Lbox obj.Lbox],[0 0],'color',[0.3 0.3 0.3])
+            plot3([obj.Lbox obj.Lbox],[obj.Lbox 0],[0 0],'color',[0.3 0.3 0.3])
             
-            plot3([1 1],[0 0],[1 0],'color',[0.3 0.3 0.3])
-            plot3([1 0],[0 0],[1 1],'color',[0.3 0.3 0.3])
-            plot3([1 1],[0 1],[1 1],'color',[0.3 0.3 0.3])
+            plot3([obj.Lbox obj.Lbox],[0 0],[obj.Lbox 0],'color',[0.3 0.3 0.3])
+            plot3([obj.Lbox 0],[0 0],[obj.Lbox obj.Lbox],'color',[0.3 0.3 0.3])
+            plot3([obj.Lbox obj.Lbox],[0 obj.Lbox],[obj.Lbox obj.Lbox],'color',[0.3 0.3 0.3])
             
-            plot3([0 0],[1 1],[1 0],'color',[0.3 0.3 0.3])
-            plot3([0 0],[1 0],[1 1],'color',[0.3 0.3 0.3])
-            plot3([0 1],[1 1],[1 1],'color',[0.3 0.3 0.3])
+            plot3([0 0],[obj.Lbox obj.Lbox],[obj.Lbox 0],'color',[0.3 0.3 0.3])
+            plot3([0 0],[obj.Lbox 0],[obj.Lbox obj.Lbox],'color',[0.3 0.3 0.3])
+            plot3([0 obj.Lbox],[obj.Lbox obj.Lbox],[obj.Lbox obj.Lbox],'color',[0.3 0.3 0.3])
             
             
             plot3([0 cube.size],[0 0],[0 0],'color','black','LineWidth',2)
@@ -2304,7 +2298,7 @@ classdef SVEclass < handle
             plot3([0 0],[cube.size cube.size],[cube.size 0],'color','black','LineWidth',2)
             plot3([0 0],[cube.size 0],[cube.size cube.size],'color','black','LineWidth',2)
             plot3([0 cube.size],[cube.size cube.size],[cube.size cube.size],'color','black','LineWidth',2)
-            axis([0 1 0 1 0 1])
+            axis([0 obj.Lbox 0 obj.Lbox 0 obj.Lbox])
             set(gca,'xtick',[])
             set(gca,'xticklabel',[])
             set(gca,'ytick',[])
