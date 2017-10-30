@@ -1732,7 +1732,7 @@ classdef SVEclass < handle
         
         boundaryElement = zeros(meshProperties.nel,1);
         for iel=1:meshProperties.nel
-            elementCenterCoords = NodeCoords(Edof(iel,2),2:end) + [0.3 0.3 0.3]*meshProperties.dx;
+            elementCenterCoords = NodeCoords(Edof(iel,2),2:end) + [0.5 0.5 0.5]*meshProperties.dx;
             
 %             % x
 %             if elementCenterCoords(1) < meshProperties.dx || elementCenterCoords(1) > obj.size - meshProperties.dx
