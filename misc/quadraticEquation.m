@@ -15,7 +15,7 @@ for j=1:length(gravelPairs)
     % https://en.wikipedia.org/wiki/Quadratic_equation
     wnull = x(c(i,1),:) - x(c(i,2),:);
     
-    if norm(wnull) < 5*r(c(i,1)) % only check collision time within a 3 radii distance (for speed)
+    if norm(wnull) < 10*r(c(i,1)) % only check collision time within a 3 radii distance (for speed)
         p = 2*wnull*(v(c(i,1),:) - v(c(i,2),:))'/norm(v(c(i,1),:) - v(c(i,2),:))^2;
         q = (wnull*wnull' - (r(c(i,1)) + r(c(i,2)))^2)/norm(v(c(i,1),:) - v(c(i,2),:))^2;
 
