@@ -2267,51 +2267,6 @@ classdef SVEclass < handle
             end
         end
         end
-        function [timeToWallCollision] = findMinimumgravelSetWallCollisionTimee(obj,cube,gravelSet,wallCollisionTimes,combinationsRows)
-            % all cominations between gravls and walls
-            % https://se.mathworks.com/matlabcentral/answers/98191-how-can-i-obtain-all-possible-combinations-of-given-vectors-in-matlab#answer_107541
-            [A,B] = meshgrid(1:length(gravelSet),1:6);
-            c=cat(2,A',B');
-            d=reshape(c,[],2);
-            
-            xnull(1,:) = cube.corners(1,:);
-            xnull(2,:) = cube.corners(5,:);
-            xnull(3,:) = cube.corners(1,:);
-            xnull(4,:) = cube.corners(3,:);
-            xnull(5,:) = cube.corners(1,:);
-            xnull(6,:) = cube.corners(2,:);
-            n(1,:) = cube.planes.xback.normal;
-            n(2,:) = cube.planes.xfront.normal;
-            n(3,:) = cube.planes.yback.normal;
-            n(4,:) = cube.planes.yfront.normal;
-            n(5,:) = cube.planes.zback.normal;
-            n(6,:) = cube.planes.zfront.normal;
-            v(1,:) = n(1,:)*0;
-            v(2,:) = n(2,:)*cube.shrinkRate;
-            v(3,:) = n(3,:)*0;
-            v(4,:) = n(4,:)*cube.shrinkRate;
-            v(5,:) = n(5,:)*0;
-            v(6,:) = n(6,:)*cube.shrinkRate;
-            
-            
-            [timeToWallCollision] = findTimeToWallCollision(...
-                                    xnull,...
-                                    reshape([gravelSet.coordinates],3,length(gravelSet))',...
-                                    reshape([gravelSet.velocity],3,length(gravelSet))',...
-                                    v,...
-                                    [gravelSet.radius]',...
-                                    n,...
-                                    d,...
-                                    wallCollisionTimes,...
-                                    combinationsRows);
-            
-            
-            
-            
-            
-            
-            
-        end
         function makeMovie(obj,v,gravelSet,cube)
             % make movie
             coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
