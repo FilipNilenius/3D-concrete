@@ -208,7 +208,7 @@ classdef SVEclass < handle
             end
             
             % display volume fraction
-            disp(totalVolume/(cube.size)^3);
+            disp(['volume fraction before packing: ',num2str(totalVolume/(cube.size)^3)]);
             
             % pack aggregates
             videoFile = VideoWriter('peaks.avi');
@@ -326,7 +326,6 @@ classdef SVEclass < handle
                 
                 % display volume fraction
                 volumeFraction = totalVolume/(cube.size)^3;
-                disp([volumeFraction cube.size]);
                 
 %                 obj.makeMovie(videoFile,gravelSet,cube)
 %                 coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
@@ -336,14 +335,15 @@ classdef SVEclass < handle
 %                 drawnow
 %                 clf
             end
+            disp(['SVE size after packing: ',num2str(cube.size)]);
             close(videoFile);
             close all
             
 %             % plot current state
-            figure(2)
-            coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
-            bubbleplot3(coords(:,1),coords(:,2),coords(:,3),[gravelSet.radius]');
-            axis square
+%             figure(2)
+%             coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
+%             bubbleplot3(coords(:,1),coords(:,2),coords(:,3),[gravelSet.radius]');
+%             axis square
             
             
             % Saves SVE data
