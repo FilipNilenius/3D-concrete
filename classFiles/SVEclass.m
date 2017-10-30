@@ -213,6 +213,7 @@ classdef SVEclass < handle
             volumeFraction = 0;
             if obj.aggFrac > 0.45 % only invoke packing for volume fractions > 0.45
                 % pack aggregates
+                disp('packing aggregates. please wait...')
                 videoFile = VideoWriter('peaks.avi');
                 open(videoFile);
 
