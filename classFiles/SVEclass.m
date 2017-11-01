@@ -80,7 +80,7 @@ classdef SVEclass < handle
                 mkdir(obj.path2Realization);
             end
         end
-        function generateSVE(obj,ballastRadii,gravelSieve,numberOfGravel)
+        function generateSVE(obj,ballastRadii,gravelSieve,numberOfGravel,maxTime)
             % generateSVE(obj,aggFrac,ballastRadii,gravelSieve,Lbox,domainFactor)
             %
             % generates 3D mesocale structure of concrete
@@ -211,6 +211,7 @@ classdef SVEclass < handle
             disp(['volume fraction before packing: ',num2str(totalVolume/(cube.size)^3)]);
             
             volumeFraction = 0;
+            tic
             if obj.aggFrac > 0.45 % only invoke packing for volume fractions > 0.45
                 % pack aggregates
                 disp('packing aggregates. please wait...')
@@ -329,6 +330,9 @@ classdef SVEclass < handle
                     volumeFraction = totalVolume/(cube.size)^3;
 
     %                 obj.makeMovie(videoFile,gravelSet,cube)
+                    if toc/(60*60) > maxTime
+                        break
+                    end
                 end
                 disp(['SVE size after packing: ',num2str(cube.size)]);
                 close(videoFile);
