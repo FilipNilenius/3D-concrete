@@ -223,7 +223,7 @@ classdef SVEclass < handle
                 wallCollisionTimes = inf(length(wallCombinations),1); % collision times for all gravel combinations'
                 combinationRows.gravel = [1:length(gravelCombinations)]';
                 combinationRows.wall = [1:length(wallCombinations)]';
-                while volumeFraction < obj.aggFrac && toc/(60*60) < maxTime
+                while volumeFraction < obj.aggFrac
 
                     % finds min time of gravel-gravel collisions
                     [gravelCollisionTimes] = quadraticEquation_mex(reshape([gravelSet.coordinates],3,length(gravelSet))',reshape([gravelSet.velocity],3,length(gravelSet))',...
@@ -325,13 +325,16 @@ classdef SVEclass < handle
                         gravelSet(collidingGravels(1)).velocity = gravelSet(gravelCombinations(gravelIndex,1)).velocity - (normal*Gnull')*2*gravelSet(gravelCombinations(gravelIndex,2)).mass/(gravelSet(gravelCombinations(gravelIndex,1)).mass + gravelSet(gravelCombinations(gravelIndex,2)).mass)*normal;
                         gravelSet(collidingGravels(2)).velocity = gravelSet(gravelCombinations(gravelIndex,2)).velocity + (normal*Gnull')*2*gravelSet(gravelCombinations(gravelIndex,1)).mass/(gravelSet(gravelCombinations(gravelIndex,1)).mass + gravelSet(gravelCombinations(gravelIndex,2)).mass)*normal;
                     end
-                    
+
+                    % display volume fraction
                     volumeFraction = totalVolume/(cube.size)^3;
 
     %                 obj.makeMovie(videoFile,gravelSet,cube)
+                    if toc/(60*60) > maxTime
+                        break
+                    end
                 end
                 disp(['SVE size after packing: ',num2str(cube.size)]);
-                disp(['volume fraction after packing: ',num2str(volumeFraction)]);
                 close(videoFile);
                 close all
 
@@ -1023,8 +1026,6 @@ classdef SVEclass < handle
             load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
             load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
             load([obj.path2Realization,obj.transientName,'.mat']);
-            
-            obj.size = cube.size;
             
             [ff nts] = size(a_store);
             slicedPlane.mean = zeros(meshProperties.nx,1);
