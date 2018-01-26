@@ -18,15 +18,16 @@ SVE = SVEclass;
 
 % % set properties
 SVE.nx                = 60;
-SVE.realizationNumber = 2;
-SVE.Lbox              = 4;
-SVE.aggFrac           = 0.1;
+SVE.realizationNumber = 1;
+SVE.Lbox              = 3;
+SVE.aggFrac           = 0.25;
+maxTime = 0; % hours
 
 % % input for 'generateSVE()'
 M = dlmread('sieve-input.txt',',');
 ballastRadii = M(:,1)/2/10; % [20 8 4 2]/2/10;   % Radius in [cm]. From http://www.sciencedirect.com/science/article/pii/S0168874X05001563
 gravelSieve  = M(:,2)/sum(M(:,2)); % [.25 .25 .35 .15]; % Distribution in fraction. sum(gravelSieve) should be 1.0
-numberOfGravel = 10;            % ballast particles are distributed inside domainFactor*LBox
+numberOfGravel = 5000;            % ballast particles are distributed inside domainFactor*LBox
 
 
 % % set SVE boundary type
@@ -41,9 +42,9 @@ numberOfGravel = 10;            % ballast particles are distributed inside domai
 
 
 % % apply methods
-% SVE.setPath(); % uses current working directory
-SVE.setPath('E:\MATLAB'); % if you want files to be saved elsewhere
-SVE.generateSVE(ballastRadii,gravelSieve,numberOfGravel);
+SVE.setPath(); % uses current working directory
+% SVE.setPath('C:\optional\path'); % if you want files to be saved elsewhere
+SVE.generateSVE(ballastRadii,gravelSieve,numberOfGravel,maxTime);
 SVE.meshSVE();
-% SVE.writeTopology();
+SVE.writeTopology();
 SVE.computeEffectiveDiffusivtyTensor();
