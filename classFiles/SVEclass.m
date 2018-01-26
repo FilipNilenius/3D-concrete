@@ -1025,12 +1025,14 @@ classdef SVEclass < handle
             %   Plots transient front for all time steps.
             load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'NodeCoords')
             load([obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'],'meshProperties')
+            load([obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'],'cube')
             load([obj.path2Realization,obj.transientName,'.mat']);
+            
             
             [ff nts] = size(a_store);
             slicedPlane.mean = zeros(meshProperties.nx,1);
             slicedPlane.std = zeros(meshProperties.nx,1);
-            spatialDirection = linspace(0,obj.size,meshProperties.nx);
+            spatialDirection = linspace(0,cube.size,meshProperties.nx);
             
             for iTime=1:nts
                 for i=0:meshProperties.nx-1
@@ -1040,7 +1042,9 @@ classdef SVEclass < handle
                 end
                 hold on
                 plot(spatialDirection,slicedPlane.mean)
-                xlabel('spatial direction')
+                xlabel('spatial direction [cm]')
+                ylabel('Precentage of ambient concentration level')
+                ylim([0 1])
             end
         end
         % linear elasticity
@@ -1750,7 +1754,6 @@ classdef SVEclass < handle
         saveVoxelCoords = [obj.path2Realization,'TopologyBundle_',num2str(obj.nx),'_',num2str(obj.realizationNumber),'.mat'];
         save(saveVoxelCoords,'boundaryElement','-v7.3','-append');
         end
-        
     end
     methods(Access = private)
         function [interfaceVoxel,Edof] = findITZ(obj,meshProperties,centroid,radius,NodeCoords,Edof)
