@@ -1037,21 +1037,34 @@ classdef SVEclass < handle
             
             
             [ff nts] = size(a_store);
-            slicedPlane.mean = zeros(meshProperties.nx,1);
-            slicedPlane.std = zeros(meshProperties.nx,1);
+            slicedPlane.concrete.mean = zeros(meshProperties.nx,1);
+            slicedPlane.cement.std = zeros(meshProperties.nx,1);
             spatialDirection = linspace(0,cube.size,meshProperties.nx);
             
             for iTime=1:nts
                 for i=0:meshProperties.nx-1
                     [nodeSlice foo] = find(abs(NodeCoords(:,2)-i*meshProperties.dx)<100*eps);
-                    slicedPlane.mean(i+1) = mean(a_store(nodeSlice,iTime));
-                    slicedPlane.std(i+1)   = std(a_store(nodeSlice,iTime));
+                    nodeSlice(nodeSlice==0) = [];
+                    a.concrete = a_store(nodeSlice,iTime);
+                    a.cement = a.concrete;
+                    a.cement(a.cement==0) = [];
+                    slicedPlane.concrete.mean(i+1) = mean(a.concrete);
+                    slicedPlane.concrete.std(i+1)   = std(a.concrete);
+                    slicedPlane.cement.mean(i+1) = mean(a.cement);
+                    slicedPlane.cement.std(i+1)   = std(a.cement);
                 end
                 hold on
-                plot(spatialDirection,slicedPlane.mean)
-                xlabel('spatial direction [cm]')
+                figure (1)
+                plot(spatialDirection,slicedPlane.concrete.mean)
+                title('concrete (= cement + aggregates + ITZ)')
+                xlabel('$x$-direction [cm]','Interpreter','latex')
                 ylabel('Precentage of ambient concentration level')
-                ylim([0 1])
+                
+                figure (2)
+                title('cement and ITZ')
+                plot(spatialDirection,slicedPlane.cement.mean)
+                xlabel('$x$-direction [cm]','Interpreter','latex')
+                ylabel('Precentage of ambient concentration level')
             end
         end
         % linear elasticity
