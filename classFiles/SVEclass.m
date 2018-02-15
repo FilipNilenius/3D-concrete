@@ -334,6 +334,8 @@ classdef SVEclass < handle
                         break
                     end
                 end
+                % display volume fraction and SVe size
+                disp(['volume fraction after packing: ',num2str(volumeFraction)]);
                 disp(['SVE size after packing: ',num2str(cube.size)]);
                 close(videoFile);
                 close all
