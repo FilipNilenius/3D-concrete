@@ -546,8 +546,13 @@ classdef SVEclass < handle
                 end
                 D(:,i) = obj.LinStatSolver();
             end
-            poolobj = gcp('nocreate');
-            delete(poolobj);
+            
+            % try-catch if running without parallel toolbox
+            try
+                poolobj = gcp('nocreate');
+                delete(poolobj);
+            catch
+            end
             dlmwrite([obj.path2Realization,'effective-diffusivity-tensor_nx=',num2str(obj.nx),'.txt'],D,'delimiter','\t')
         end
         function homoDiffRow = LinStatSolver(obj,varargin)
