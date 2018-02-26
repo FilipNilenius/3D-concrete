@@ -341,6 +341,17 @@ classdef SVEclass < handle
                 disp(['SVE size after packing: ',num2str(cube.size)]);
                 close(videoFile);
                 close all
+                
+                % find and remove gravel outside SVE domain
+                remove.x = find(gravelCoordinates(:,1) < 0 | gravelCoordinates(:,1) > cube.size);
+                remove.y = find(gravelCoordinates(:,2) < 0 | gravelCoordinates(:,2) > cube.size);
+                remove.z = find(gravelCoordinates(:,3) < 0 | gravelCoordinates(:,3) > cube.size);
+                remove.all = [remove.x' remove.y' remove.z'];
+                gravelCoordinates(remove.all,:) = [];
+                remove.all
+                length(gravelSet)
+                gravelSet(remove.all) = [];
+                length(gravelSet)
 
                 % plot final state
                 figure(2)
@@ -351,6 +362,7 @@ classdef SVEclass < handle
             % Saves SVE data
             for i=1:length(gravelSet)
                 gravelSet(i).coordinates = gravelCoordinates(i,:);
+                gravelSet(i).radius = gravelRadius(i);
             end
             
             savefile = [obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'];
