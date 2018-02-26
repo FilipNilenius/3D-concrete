@@ -463,15 +463,15 @@ classdef SVEclass < handle
             [BEdof] = obj.boundaryEdof(Edof,meshProperties,NodeCoords,obj.size);
             
             % Generates sparse matrix structure % K = sparse(sparseVec.i,sparseVec.j,X,ndof,ndof)
-            sparseVec.i = zeros(meshProperties.nel*8,8,'uint32');
-            sparseVec.j = zeros(meshProperties.nel*8,8,'uint32');
+            sparseVec.i = zeros(meshProperties.nel*8,8);
+            sparseVec.j = zeros(meshProperties.nel*8,8);
             k=0;
             for i=1:meshProperties.nel
                 % diffusion
                 for j=1:8
                     k = k + 1;
-                    sparseVec.i(k,:) = Edof(i,1+j)*ones(1,8,'uint32');
-                    sparseVec.j(k,:) = Edof(i,2:end);
+                    sparseVec.i(k,:) = double(Edof(i,1+j)*ones(1,8));
+                    sparseVec.j(k,:) = double(Edof(i,2:end));
                 end
             end
             
@@ -652,7 +652,7 @@ classdef SVEclass < handle
         
         X = cell2mat(X);
         X = reshape(X',meshProperties.nel*8*8,1);
-        K.full = sparse2(sparseVec.i,sparseVec.j,X,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
+        K.full = sparse(sparseVec.i,sparseVec.j,X,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
 
         clear sparseVec;
         clear X;
@@ -892,9 +892,9 @@ classdef SVEclass < handle
             C = cell2mat(C);
             C = reshape(C',meshProperties.nel*8*8,1);
             
-            K = sparse2(sparseVec.i,sparseVec.j,K,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
-            C = sparse2(sparseVec.i,sparseVec.j,C,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
-            f = sparse2(meshProperties.ndof.diffusion,1);
+            K = sparse(sparseVec.i,sparseVec.j,K,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
+            C = sparse(sparseVec.i,sparseVec.j,C,meshProperties.ndof.diffusion,meshProperties.ndof.diffusion);
+            f = sparse(meshProperties.ndof.diffusion,1);
             
             % Adds convective contribution to K and builds f
             for i=1:length(BEdof.x.back.Edof)
@@ -1231,7 +1231,7 @@ classdef SVEclass < handle
             try
                 for ii=1:3
                     % assemble K
-                    K.full = sparse2([],[],[],meshProperties.ndof.elasticity,meshProperties.ndof.elasticity);
+                    K.full = sparse([],[],[],meshProperties.ndof.elasticity,meshProperties.ndof.elasticity);
                     
                     tic
                     for assemPart = 1:4
@@ -1308,7 +1308,7 @@ classdef SVEclass < handle
 
                         X = cell2mat(X);
                         X = reshape(X',length(elements)*8*3*8*3,1);
-                        K.full = K.full + sparse2(iVec,jVec,X,meshProperties.ndof.elasticity,meshProperties.ndof.elasticity);
+                        K.full = K.full + sparse(iVec,jVec,X,meshProperties.ndof.elasticity,meshProperties.ndof.elasticity);
 
                         partMaxPrincipalEigenvector = cell2mat(partMaxPrincipalEigenvector);
                         maxPrincipalStrain.eigenvector(:,elements) = reshape(partMaxPrincipalEigenvector,3,length(elements));
