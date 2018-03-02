@@ -100,7 +100,7 @@ classdef SVEclass < handle
             
             % parameters
             cube.size = obj.Lbox;
-            cube.shrinkRate = -0.1;
+            
             
             % create gravel set
             ballastMass = 4/3*pi*ballastRadii.^3;
@@ -108,7 +108,6 @@ classdef SVEclass < handle
             numberOfGravelInSieve = round(ratios*numberOfGravel/sum(ratios));
             gravelSet(1:sum(numberOfGravelInSieve)) = gravel;
             cumSumGravelSieve = cumsum(numberOfGravelInSieve);
-            
             
             
             for i=1:length(numberOfGravelInSieve)
@@ -120,28 +119,6 @@ classdef SVEclass < handle
                 [gravelSet(range).radius] = deal(ballastRadii(i));
             end
             gravelRadius = [gravelSet.radius];
-            
-            
-            % create all gravelSet interaction combinations
-            n = length(gravelSet);
-            rows = (n - 1)*n/2;
-            gravelCombinations = zeros(rows,2);
-            
-            counter = 0;
-            for i=1:n-1
-                for j=i+1:n
-                    counter = counter + 1;
-                    gravelCombinations(counter,1) = i;
-                    gravelCombinations(counter,2) = j;
-                end
-            end
-            clear n
-            
-            % create all gravel-wall interaction combinations
-            [A,B] = meshgrid(1:length(gravelSet),1:6);
-            c=cat(2,A',B');
-            wallCombinations = reshape(c,[],2);
-            
             
             % define cube corners and normals
             cube.corners = [0,0,0
@@ -159,24 +136,6 @@ classdef SVEclass < handle
             cube.planes.zback.normal  = [ 0, 0,-1];
             cube.planes.zfront.normal = [ 0, 0, 1];
             
-            xnull(1,:) = cube.corners(1,:);
-            xnull(2,:) = cube.corners(5,:);
-            xnull(3,:) = cube.corners(1,:);
-            xnull(4,:) = cube.corners(3,:);
-            xnull(5,:) = cube.corners(1,:);
-            xnull(6,:) = cube.corners(2,:);
-            n(1,:) = cube.planes.xback.normal;
-            n(2,:) = cube.planes.xfront.normal;
-            n(3,:) = cube.planes.yback.normal;
-            n(4,:) = cube.planes.yfront.normal;
-            n(5,:) = cube.planes.zback.normal;
-            n(6,:) = cube.planes.zfront.normal;
-            v(1,:) = n(1,:)*0;
-            v(2,:) = n(2,:)*cube.shrinkRate;
-            v(3,:) = n(3,:)*0;
-            v(4,:) = n(4,:)*cube.shrinkRate;
-            v(5,:) = n(5,:)*0;
-            v(6,:) = n(6,:)*cube.shrinkRate;
             
             % seed the random number generator based on the current time
             rng('shuffle')
@@ -201,6 +160,65 @@ classdef SVEclass < handle
                 k = k + 1;
             end
             
+            % Saves SVE data
+            for i=1:length(gravelSet)
+                gravelSet(i).coordinates = gravelCoordinates(i,:);
+                gravelSet(i).radius = gravelRadius(i);
+            end
+            
+            savefile = [obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'];
+            save(savefile,'gravelSet','cube','gravelSieve');
+        end
+        function packSVE(obj,maxTime)
+            % load SVE data
+            load([obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'])
+            
+            % set shrink rate
+            cube.shrinkRate = -0.1;
+            
+            % extract gravel coordinates
+            gravelCoordinates = [reshape([gravelSet.coordinates],3,length(gravelSet))]';
+            gravelRadius = [gravelSet.radius]';
+            
+            % create all gravelSet interaction combinations
+            n = length(gravelSet);
+            rows = (n - 1)*n/2;
+            gravelCombinations = zeros(rows,2);
+            
+            counter = 0;
+            for i=1:n-1
+                for j=i+1:n
+                    counter = counter + 1;
+                    gravelCombinations(counter,1) = i;
+                    gravelCombinations(counter,2) = j;
+                end
+            end
+            clear n
+            
+            % create all gravel-wall interaction combinations
+            [A,B] = meshgrid(1:length(gravelSet),1:6);
+            c=cat(2,A',B');
+            wallCombinations = reshape(c,[],2);
+            
+            xnull(1,:) = cube.corners(1,:);
+            xnull(2,:) = cube.corners(5,:);
+            xnull(3,:) = cube.corners(1,:);
+            xnull(4,:) = cube.corners(3,:);
+            xnull(5,:) = cube.corners(1,:);
+            xnull(6,:) = cube.corners(2,:);
+            n(1,:) = cube.planes.xback.normal;
+            n(2,:) = cube.planes.xfront.normal;
+            n(3,:) = cube.planes.yback.normal;
+            n(4,:) = cube.planes.yfront.normal;
+            n(5,:) = cube.planes.zback.normal;
+            n(6,:) = cube.planes.zfront.normal;
+            v(1,:) = n(1,:)*0;
+            v(2,:) = n(2,:)*cube.shrinkRate;
+            v(3,:) = n(3,:)*0;
+            v(4,:) = n(4,:)*cube.shrinkRate;
+            v(5,:) = n(5,:)*0;
+            v(6,:) = n(6,:)*cube.shrinkRate;
+            
             % total gravel volume and assign random velocity
             totalVolume = 0;
             gravelVelocity = zeros(length(gravelSet),3);
@@ -215,149 +233,141 @@ classdef SVEclass < handle
             disp(['volume fraction before packing: ',num2str(totalVolume/(cube.size)^3)]);
             
             volumeFraction = 0;
+            
+            % pack aggregates
+            disp('packing aggregates. please wait...')
+            videoFile = VideoWriter('peaks.avi');
+            open(videoFile);
+
+            % define empty matrices
+            gravelCollisionTimes = inf(length(gravelCombinations),1); % collision times for all gravel combinations
+            wallCollisionTimes = inf(length(wallCombinations),1); % collision times for all gravel combinations'
+            combinationRows.gravel = [1:length(gravelCombinations)]';
+            combinationRows.wall = [1:length(wallCombinations)]';
+            
             tic
-            if obj.aggFrac > 0.45 % only invoke packing for volume fractions > 0.45
-                % pack aggregates
-                disp('packing aggregates. please wait...')
-                videoFile = VideoWriter('peaks.avi');
-                open(videoFile);
+            while volumeFraction < obj.aggFrac
 
-                % define empty matrices
-                gravelCollisionTimes = inf(length(gravelCombinations),1); % collision times for all gravel combinations
-                wallCollisionTimes = inf(length(wallCombinations),1); % collision times for all gravel combinations'
-                combinationRows.gravel = [1:length(gravelCombinations)]';
-                combinationRows.wall = [1:length(wallCombinations)]';
-                while volumeFraction < obj.aggFrac
+                % finds min time of gravel-gravel collisions
+                [gravelCollisionTimes] = quadraticEquation_mex(gravelCoordinates,gravelVelocity,...
+                                                               gravelRadius,gravelCombinations,gravelCollisionTimes,combinationRows.gravel);
+                [gravelCollisionTime gravelIndex] = min(gravelCollisionTimes);
 
-                    % finds min time of gravel-gravel collisions
-                    [gravelCollisionTimes] = quadraticEquation_mex(gravelCoordinates,gravelVelocity,...
-                                                                   gravelRadius',gravelCombinations,gravelCollisionTimes,combinationRows.gravel);
-                    [gravelCollisionTime gravelIndex] = min(gravelCollisionTimes);
+                % finds time to next wall collision
+                [wallCollisionTimes] = findTimeToWallCollision_mex(...
+                                    xnull,...
+                                    gravelCoordinates,...
+                                    gravelVelocity,...
+                                    v,...
+                                    gravelRadius,...
+                                    n,...
+                                    wallCombinations,...
+                                    wallCollisionTimes,...
+                                    combinationRows.wall);
+                [wallCollisionTime wallIndex] = min(wallCollisionTimes);
 
-                    % finds time to next wall collision
-                    [wallCollisionTimes] = findTimeToWallCollision_mex(...
-                                        xnull,...
-                                        gravelCoordinates,...
-                                        gravelVelocity,...
-                                        v,...
-                                        gravelRadius',...
-                                        n,...
-                                        wallCombinations,...
-                                        wallCollisionTimes,...
-                                        combinationRows.wall);
-                    [wallCollisionTime wallIndex] = min(wallCollisionTimes);
+                % find time to next event
+                timeToNextEvent = 0.8*min([gravelCollisionTime wallCollisionTime]); % 0.8 to avoid numerical errors
 
-                    % find time to next event
-                    timeToNextEvent = 0.8*min([gravelCollisionTime wallCollisionTime]); % 0.8 to avoid numerical errors
-
-                    % update gravelSet coordinates at time of collision
-                    gravelCoordinates = gravelCoordinates + timeToNextEvent*gravelVelocity;
+                % update gravelSet coordinates at time of collision
+                gravelCoordinates = gravelCoordinates + timeToNextEvent*gravelVelocity;
 
 
-                    % new combinations matrices
-                    if wallCollisionTime < gravelCollisionTime
-                        collidingGravel = wallCombinations(wallIndex,1);
+                % new combinations matrices
+                if wallCollisionTime < gravelCollisionTime
+                    collidingGravel = wallCombinations(wallIndex,1);
 
-                        one = find(gravelCombinations(:,1)==collidingGravel);
-                        two = find(gravelCombinations(:,2)==collidingGravel);
-                        combinationRows.gravel = [one' two']'; % indices in gravelCombination matrix where colliding gravel exists
-                        combinationRows.wall = find(wallCombinations(:,1)==collidingGravel);
-                    else
-                        collidingGravels = [gravelCombinations(gravelIndex,1) gravelCombinations(gravelIndex,2)];
+                    one = find(gravelCombinations(:,1)==collidingGravel);
+                    two = find(gravelCombinations(:,2)==collidingGravel);
+                    combinationRows.gravel = [one' two']'; % indices in gravelCombination matrix where colliding gravel exists
+                    combinationRows.wall = find(wallCombinations(:,1)==collidingGravel);
+                else
+                    collidingGravels = [gravelCombinations(gravelIndex,1) gravelCombinations(gravelIndex,2)];
 
-                        subSet.gravel.one.left = find(gravelCombinations(:,1)==collidingGravels(1));
-                        subSet.gravel.one.right = find(gravelCombinations(:,2)==collidingGravels(1));
-                        subSet.gravel.one.full = [subSet.gravel.one.left' subSet.gravel.one.right']';
-                        subSet.gravel.two.left = find(gravelCombinations(:,1)==collidingGravels(2));
-                        subSet.gravel.two.right =  find(gravelCombinations(:,2)==collidingGravels(2)); % indices in gravelCombination matrix where colliding gravel exists
-                        subSet.gravel.two.full = [subSet.gravel.two.left' subSet.gravel.two.right']';
-                        subSet.wall.one = find(wallCombinations(:,1)==collidingGravels(1));
-                        subSet.wall.two = find(wallCombinations(:,1)==collidingGravels(2));
-                        combinationRows.wall = [subSet.wall.one' subSet.wall.two']';
-                        combinationRows.gravel = [subSet.gravel.one.full' subSet.gravel.two.full']';    
-                    end
-
-                    % update time vectors
-                    gravelCollisionTimes = gravelCollisionTimes - timeToNextEvent;
-                    wallCollisionTimes = wallCollisionTimes - timeToNextEvent;
-                    gravelCollisionTimes(combinationRows.gravel) = inf;
-                    wallCollisionTimes(combinationRows.wall) = inf;
-
-
-                    % update cube corners (shrinking cube) at time of collision
-                    cube.corners(5,:) = cube.corners(5,:) + timeToNextEvent*cube.shrinkRate*cube.planes.xfront.normal;
-                    cube.corners(3,:) = cube.corners(3,:) + timeToNextEvent*cube.shrinkRate*cube.planes.yfront.normal;
-                    cube.corners(2,:) = cube.corners(2,:) + timeToNextEvent*cube.shrinkRate*cube.planes.zfront.normal;
-                    cube.size = cube.corners(5,1);
-                    xnull(1,:) = cube.corners(1,:);
-                    xnull(2,:) = cube.corners(5,:);
-                    xnull(3,:) = cube.corners(1,:);
-                    xnull(4,:) = cube.corners(3,:);
-                    xnull(5,:) = cube.corners(1,:);
-                    xnull(6,:) = cube.corners(2,:);
-
-
-                    % update gravel velocity after collision
-                    if wallCollisionTime < gravelCollisionTime % if next event is wall collision
-                        % new speed after collision
-                        % https://math.stackexchange.com/questions/1225494/component-of-a-vector-perpendicular-to-another-vector
-
-
-                        collidingGravel = wallCombinations(wallIndex,1);
-                        wall = wallCombinations(wallIndex,2);
-
-                        velocity.old = gravelVelocity(collidingGravel,:);
-                        velocity.perpendicular = gravelVelocity(collidingGravel,:)*n(wall,:)'/(n(wall,:)*n(wall,:)')*n(wall,:);
-                        velocity.parallel = velocity.old - velocity.perpendicular;
-
-                        % make sure that the perpendicular velocity is greater than the
-                        % shrink rate of the cube. If not, make it 1.1 times shrink
-                        % rate
-                        if norm(velocity.perpendicular) < abs(cube.shrinkRate)
-                            velocity.perpendicular = velocity.perpendicular/norm(velocity.perpendicular)*1.1*cube.shrinkRate;
-                        end
-
-                        gravelVelocity(collidingGravel,:) = velocity.parallel + -velocity.perpendicular;
-                    else % if next event is gravel-gravel collision
-                        % compute updated speeds after collision
-                        collidingGravels = [gravelCombinations(gravelIndex,1) gravelCombinations(gravelIndex,2)];
-                        Gnull = gravelVelocity(gravelCombinations(gravelIndex,1),:) - gravelVelocity(gravelCombinations(gravelIndex,2),:);
-                        normal = gravelCoordinates(gravelCombinations(gravelIndex,1),:) - gravelCoordinates(gravelCombinations(gravelIndex,2),:);
-                        normal = normal/norm(normal);
-                        gravelVelocity(collidingGravels(1),:) = gravelVelocity(gravelCombinations(gravelIndex,1),:) - (normal*Gnull')*2*gravelSet(gravelCombinations(gravelIndex,2)).mass/(gravelSet(gravelCombinations(gravelIndex,1)).mass + gravelSet(gravelCombinations(gravelIndex,2)).mass)*normal;
-                        gravelVelocity(collidingGravels(2),:) = gravelVelocity(gravelCombinations(gravelIndex,2),:) + (normal*Gnull')*2*gravelSet(gravelCombinations(gravelIndex,1)).mass/(gravelSet(gravelCombinations(gravelIndex,1)).mass + gravelSet(gravelCombinations(gravelIndex,2)).mass)*normal;
-                    end
-
-                    % display volume fraction
-                    volumeFraction = totalVolume/(cube.size)^3;
-
-    %                 obj.makeMovie(videoFile,gravelSet,cube)
-                    if toc/(60*60) > maxTime
-                        break
-                    end
+                    subSet.gravel.one.left = find(gravelCombinations(:,1)==collidingGravels(1));
+                    subSet.gravel.one.right = find(gravelCombinations(:,2)==collidingGravels(1));
+                    subSet.gravel.one.full = [subSet.gravel.one.left' subSet.gravel.one.right']';
+                    subSet.gravel.two.left = find(gravelCombinations(:,1)==collidingGravels(2));
+                    subSet.gravel.two.right =  find(gravelCombinations(:,2)==collidingGravels(2)); % indices in gravelCombination matrix where colliding gravel exists
+                    subSet.gravel.two.full = [subSet.gravel.two.left' subSet.gravel.two.right']';
+                    subSet.wall.one = find(wallCombinations(:,1)==collidingGravels(1));
+                    subSet.wall.two = find(wallCombinations(:,1)==collidingGravels(2));
+                    combinationRows.wall = [subSet.wall.one' subSet.wall.two']';
+                    combinationRows.gravel = [subSet.gravel.one.full' subSet.gravel.two.full']';    
                 end
-                % display volume fraction and SVe size
-                disp(['volume fraction after packing: ',num2str(volumeFraction)]);
-                disp(['SVE size after packing: ',num2str(cube.size)]);
-                close(videoFile);
-                close all
-                
-                % find and remove gravel outside SVE domain
-                remove.x = find(gravelCoordinates(:,1) < 0 | gravelCoordinates(:,1) > cube.size);
-                remove.y = find(gravelCoordinates(:,2) < 0 | gravelCoordinates(:,2) > cube.size);
-                remove.z = find(gravelCoordinates(:,3) < 0 | gravelCoordinates(:,3) > cube.size);
-                remove.all = [remove.x' remove.y' remove.z'];
-                gravelCoordinates(remove.all,:) = [];
-                remove.all
-                length(gravelSet)
-                gravelSet(remove.all) = [];
-                length(gravelSet)
 
-                % plot final state
-                figure(2)
-                bubbleplot3(gravelCoordinates(:,1),gravelCoordinates(:,2),gravelCoordinates(:,3),gravelRadius');
-                axis square
+                % update time vectors
+                gravelCollisionTimes = gravelCollisionTimes - timeToNextEvent;
+                wallCollisionTimes = wallCollisionTimes - timeToNextEvent;
+                gravelCollisionTimes(combinationRows.gravel) = inf;
+                wallCollisionTimes(combinationRows.wall) = inf;
+
+
+                % update cube corners (shrinking cube) at time of collision
+                cube.corners(5,:) = cube.corners(5,:) + timeToNextEvent*cube.shrinkRate*cube.planes.xfront.normal;
+                cube.corners(3,:) = cube.corners(3,:) + timeToNextEvent*cube.shrinkRate*cube.planes.yfront.normal;
+                cube.corners(2,:) = cube.corners(2,:) + timeToNextEvent*cube.shrinkRate*cube.planes.zfront.normal;
+                cube.size = cube.corners(5,1);
+                xnull(1,:) = cube.corners(1,:);
+                xnull(2,:) = cube.corners(5,:);
+                xnull(3,:) = cube.corners(1,:);
+                xnull(4,:) = cube.corners(3,:);
+                xnull(5,:) = cube.corners(1,:);
+                xnull(6,:) = cube.corners(2,:);
+
+
+                % update gravel velocity after collision
+                if wallCollisionTime < gravelCollisionTime % if next event is wall collision
+                    % new speed after collision
+                    % https://math.stackexchange.com/questions/1225494/component-of-a-vector-perpendicular-to-another-vector
+
+
+                    collidingGravel = wallCombinations(wallIndex,1);
+                    wall = wallCombinations(wallIndex,2);
+
+                    velocity.old = gravelVelocity(collidingGravel,:);
+                    velocity.perpendicular = gravelVelocity(collidingGravel,:)*n(wall,:)'/(n(wall,:)*n(wall,:)')*n(wall,:);
+                    velocity.parallel = velocity.old - velocity.perpendicular;
+
+                    % make sure that the perpendicular velocity is greater than the
+                    % shrink rate of the cube. If not, make it 1.1 times shrink
+                    % rate
+                    if norm(velocity.perpendicular) < abs(cube.shrinkRate)
+                        velocity.perpendicular = velocity.perpendicular/norm(velocity.perpendicular)*1.1*cube.shrinkRate;
+                    end
+
+                    gravelVelocity(collidingGravel,:) = velocity.parallel + -velocity.perpendicular;
+                else % if next event is gravel-gravel collision
+                    % compute updated speeds after collision
+                    collidingGravels = [gravelCombinations(gravelIndex,1) gravelCombinations(gravelIndex,2)];
+                    Gnull = gravelVelocity(gravelCombinations(gravelIndex,1),:) - gravelVelocity(gravelCombinations(gravelIndex,2),:);
+                    normal = gravelCoordinates(gravelCombinations(gravelIndex,1),:) - gravelCoordinates(gravelCombinations(gravelIndex,2),:);
+                    normal = normal/norm(normal);
+                    gravelVelocity(collidingGravels(1),:) = gravelVelocity(gravelCombinations(gravelIndex,1),:) - (normal*Gnull')*2*gravelSet(gravelCombinations(gravelIndex,2)).mass/(gravelSet(gravelCombinations(gravelIndex,1)).mass + gravelSet(gravelCombinations(gravelIndex,2)).mass)*normal;
+                    gravelVelocity(collidingGravels(2),:) = gravelVelocity(gravelCombinations(gravelIndex,2),:) + (normal*Gnull')*2*gravelSet(gravelCombinations(gravelIndex,1)).mass/(gravelSet(gravelCombinations(gravelIndex,1)).mass + gravelSet(gravelCombinations(gravelIndex,2)).mass)*normal;
+                end
+
+                % display volume fraction
+                volumeFraction = totalVolume/(cube.size)^3;
+
+%                 obj.makeMovie(videoFile,gravelSet,cube)
+                if toc/(60*60) > maxTime
+                    break
+                end
             end
+            % display volume fraction and SVe size
+            disp(['volume fraction after packing: ',num2str(volumeFraction)]);
+            disp(['SVE size after packing: ',num2str(cube.size)]);
+            close(videoFile);
+            close all
+
+            % plot final state
+            figure(2)
+            bubbleplot3(gravelCoordinates(:,1),gravelCoordinates(:,2),gravelCoordinates(:,3),gravelRadius');
+            xlim([0 cube.size])
+            ylim([0 cube.size])
+            zlim([0 cube.size])
+            axis square
             
             % Saves SVE data
             for i=1:length(gravelSet)
@@ -367,7 +377,6 @@ classdef SVEclass < handle
             
             savefile = [obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'];
             save(savefile,'gravelSet','cube','gravelSieve');
-            
         end
         function meshSVE(obj)
             % meshSVE(nx):
