@@ -169,12 +169,16 @@ classdef SVEclass < handle
             savefile = [obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'];
             save(savefile,'gravelSet','cube','gravelSieve');
         end
-        function packSVE(obj,maxTime)
+        function packSVE(obj,maxTime,varargin)
             % load SVE data
             load([obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'])
             
             % set shrink rate
-            cube.shrinkRate = -0.1;
+            if isempty(varargin)==1
+                cube.shrinkRate = -0.1;
+            else
+                cube.shrinkRate = 0;
+            end
             
             % extract gravel coordinates
             gravelCoordinates = [reshape([gravelSet.coordinates],3,length(gravelSet))]';
