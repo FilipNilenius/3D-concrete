@@ -80,7 +80,7 @@ classdef SVEclass < handle
                 mkdir(obj.path2Realization);
             end
         end
-        function generateSVE(obj,ballastRadii,gravelSieve,numberOfGravel,maxTime)
+        function generateSVE(obj,ballastRadii,gravelSieve,numberOfGravel)
             % generateSVE(obj,aggFrac,ballastRadii,gravelSieve,Lbox,domainFactor)
             %
             % generates 3D mesocale structure of concrete
