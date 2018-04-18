@@ -495,7 +495,7 @@ classdef SVEclass < handle
                 % diffusion
                 for j=1:8
                     k = k + 1;
-                    sparseVec.i(k,:) = double(Edof(i,1+j)*ones(1,8));
+                    sparseVec.i(k,:) = double(Edof(i,1+j))*ones(1,8);
                     sparseVec.j(k,:) = double(Edof(i,2:end));
                 end
             end
