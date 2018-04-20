@@ -470,8 +470,8 @@ classdef SVEclass < handle
             % Removes boundary voxels to ease global dof numbering
             Edof(RemoveVoxel,:) = [];
 
-            meshProperties.ndof = max(max(Edof(:,2:end)));
-            meshProperties.nel  = length(Edof(:,1));
+            meshProperties.ndof = double(max(max(Edof(:,2:end))));
+            meshProperties.nel  = double(length(Edof(:,1)));
             meshProperties.dx   = obj.size/(meshProperties.nel^(1/3));
             meshProperties.nx   = obj.nx;
             
