@@ -382,6 +382,59 @@ classdef SVEclass < handle
             savefile = [obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'];
             save(savefile,'gravelSet','cube','gravelSieve');
         end
+        function deleteOverlappingSpheres(obj)
+            % load SVE data
+            load([obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'])
+            coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
+
+            % loop over all sphere combination to find overlaps
+            counter = 0;
+            for i=1:length(gravelSet)-1
+                for j=i+1:length(gravelSet)
+                    if norm(gravelSet(i).coordinates - gravelSet(j).coordinates) <= gravelSet(i).radius + gravelSet(j).radius
+                        counter = counter + 1;
+                        overlappingGravel(counter,:) = [i j];
+                    end
+                end
+            end
+
+            % only if overlapping spheres are identified
+            if counter > 0
+                overlappingGravel = unique(reshape(overlappingGravel,2*counter,1));
+
+                % plot overlapping spheres
+                figure(1)
+                bubbleplot3(coords(overlappingGravel,1),coords(overlappingGravel,2),coords(overlappingGravel,3),[gravelSet(overlappingGravel).radius]');
+
+                disp(['overlapping spheres: ',num2str(overlappingGravel')])
+                disp(' ')
+                prompt = 'type the sphere number that you want to delete: ';
+                x = input(prompt);
+
+                gravelSet(x) = [];
+                for i=1:length(overlappingGravel)
+                    if overlappingGravel(i) == x
+                        overlappingGravel(i) = [];
+                        overlappingGravel(i:end) = overlappingGravel(i:end) - 1;
+                        break
+                    end
+                end
+                coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
+
+                % plot updated configuration
+                figure(2)
+                bubbleplot3(coords(overlappingGravel,1),coords(overlappingGravel,2),coords(overlappingGravel,3),[gravelSet(overlappingGravel).radius]');
+                title(['remaining overlaps after deleting sphere ',num2str(x)])
+
+                % save modified gravelSet data to file
+                savefile = [obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'_mod.mat'];
+                save(savefile,'gravelSet','cube','gravelSieve');
+                disp([' '])
+                disp(['updated gravelSet has been saved to "',savefile,'"'])
+            else
+                disp('no overlapping spheres were found!')
+            end
+        end
         function meshSVE(obj)
             % meshSVE(nx):
             %   Mesh SVE with NEL = nx^3 and saves topology data to mat.file.
