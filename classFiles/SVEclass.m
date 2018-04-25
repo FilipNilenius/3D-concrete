@@ -400,7 +400,9 @@ classdef SVEclass < handle
                     deleteGravel(counter) = i;
                 end
             end
-            gravelSet(deleteGravel) = [];
+            if exist('deleteGravel','var')
+                gravelSet(deleteGravel) = [];
+            end
             coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
 
             % loop over all sphere combination to find overlaps
