@@ -433,6 +433,7 @@ classdef SVEclass < handle
                 disp(['updated gravelSet has been saved to "',savefile,'"'])
             else
                 disp('no overlapping spheres were found!')
+                bubbleplot3(coords(:,1),coords(:,2),coords(:,3),[gravelSet.radius]');
             end
         end
         function meshSVE(obj)
