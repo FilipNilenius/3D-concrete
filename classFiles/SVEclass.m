@@ -385,6 +385,22 @@ classdef SVEclass < handle
         function deleteOverlappingSpheres(obj)
             % load SVE data
             load([obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'.mat'])
+            
+            % delete spheres outside the SVE
+            counter = 0;
+            for i=1:length(gravelSet)
+                if gravelSet(i).coordinates(1) < gravelSet(i).radius || gravelSet(i).coordinates(1) + gravelSet(i).radius > cube.size
+                    counter = counter + 1;
+                    deleteGravel(counter) = i;
+                elseif gravelSet(i).coordinates(2) < gravelSet(i).radius || gravelSet(i).coordinates(2) + gravelSet(i).radius > cube.size
+                    counter = counter + 1;
+                    deleteGravel(counter) = i;
+                elseif gravelSet(i).coordinates(3) < gravelSet(i).radius || gravelSet(i).coordinates(3) + gravelSet(i).radius > cube.size
+                    counter = counter + 1;
+                    deleteGravel(counter) = i;
+                end
+            end
+            gravelSet(deleteGravel) = [];
             coords = reshape([gravelSet.coordinates],3,length(gravelSet))';
 
             % loop over all sphere combination to find overlaps
@@ -425,16 +441,15 @@ classdef SVEclass < handle
                 figure(2)
                 bubbleplot3(coords(overlappingGravel,1),coords(overlappingGravel,2),coords(overlappingGravel,3),[gravelSet(overlappingGravel).radius]');
                 title(['remaining overlaps after deleting sphere ',num2str(x)])
-
-                % save modified gravelSet data to file
-                savefile = [obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'_mod.mat'];
-                save(savefile,'gravelSet','cube','gravelSieve');
-                disp([' '])
-                disp(['updated gravelSet has been saved to "',savefile,'"'])
             else
                 disp('no overlapping spheres were found!')
                 bubbleplot3(coords(:,1),coords(:,2),coords(:,3),[gravelSet.radius]');
             end
+            % save modified gravelSet data to file
+            savefile = [obj.path2Realization,'SVEparameters_',num2str(obj.realizationNumber),'_mod.mat'];
+            save(savefile,'gravelSet','cube','gravelSieve');
+            disp([' '])
+            disp(['updated gravelSet has been saved to "',savefile,'"'])
         end
         function meshSVE(obj)
             % meshSVE(nx):
