@@ -656,7 +656,9 @@ classdef SVEclass < handle
                 delete(poolobj);
             catch
             end
-            dlmwrite([obj.path2Realization,'effective-diffusivity-tensor_nx=',num2str(obj.nx),'.txt'],D,'delimiter','\t')
+            
+            ITZ = ITZClass;
+            dlmwrite([obj.path2Realization,'effective-diffusivity-tensor_nx=',num2str(obj.nx),'_ITZ=',num2str(100*ITZ.diffusionCoefficient,'%03.f'),'.txt'],D,'delimiter','\t')
         end
         function homoDiffRow = LinStatSolver(obj,varargin)
         % a = LinStatSolver(H,obj.sliceVector):
