@@ -389,13 +389,13 @@ classdef SVEclass < handle
             % delete spheres outside the SVE
             counter = 0;
             for i=1:length(gravelSet)
-                if gravelSet(i).coordinates(1) < gravelSet(i).radius || gravelSet(i).coordinates(1) + gravelSet(i).radius > cube.size
+                if gravelSet(i).coordinates(1) + gravelSet(i).radius < 0 || gravelSet(i).coordinates(1) - gravelSet(i).radius > cube.size
                     counter = counter + 1;
                     deleteGravel(counter) = i;
-                elseif gravelSet(i).coordinates(2) < gravelSet(i).radius || gravelSet(i).coordinates(2) + gravelSet(i).radius > cube.size
+                elseif gravelSet(i).coordinates(2) + gravelSet(i).radius < 0 || gravelSet(i).coordinates(2) - gravelSet(i).radius > cube.size
                     counter = counter + 1;
                     deleteGravel(counter) = i;
-                elseif gravelSet(i).coordinates(3) < gravelSet(i).radius || gravelSet(i).coordinates(3) + gravelSet(i).radius > cube.size
+                elseif gravelSet(i).coordinates(3) + gravelSet(i).radius < 0 || gravelSet(i).coordinates(3) - gravelSet(i).radius > cube.size
                     counter = counter + 1;
                     deleteGravel(counter) = i;
                 end
