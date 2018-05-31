@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.coder" plugin-version="R2016a">
-  <configuration build-checksum="3260183100" file="D:\Dropbox\GitHub\3D-concrete\misc\findTimeToWallCollision.prj" location="D:\Dropbox\GitHub\3D-concrete\misc" name="findTimeToWallCollision" target="target.unifiedcoder" target-name="MATLAB Coder">
+  <configuration build-checksum="1535962151" file="D:\Dropbox\GitHub\3D-concrete\misc\mass3i8e.prj" location="D:\Dropbox\GitHub\3D-concrete\misc" name="mass3i8e" target="target.unifiedcoder" target-name="MATLAB Coder">
     <profile key="profile.mex">
       <param.BuiltInstrumentedMex>false</param.BuiltInstrumentedMex>
       <param.RanInstrumentedMex>false</param.RanInstrumentedMex>
@@ -728,7 +728,7 @@
     <param.DefaultImportExportVariable>config</param.DefaultImportExportVariable>
     <param.RowMajor>false</param.RowMajor>
     <param.UseGlobals>option.UseGlobals.No</param.UseGlobals>
-    <param.outputfile>${PROJECT_ROOT}\findTimeToWallCollision_mex.mexw64</param.outputfile>
+    <param.outputfile>${PROJECT_ROOT}\mass3i8e_mex.mexw64</param.outputfile>
     <param.version>R2012a</param.version>
     <param.HasECoderFeatures>true</param.HasECoderFeatures>
     <param.mex.mainhtml />
@@ -741,28 +741,28 @@
     <param.AutoInferUnboundedSizeThreshold>2048</param.AutoInferUnboundedSizeThreshold>
     <param.EnableFixedPointStep>false</param.EnableFixedPointStep>
     <param.EnableScreener>true</param.EnableScreener>
-    <param.AnnotationChecksum>2347851736</param.AnnotationChecksum>
+    <param.AnnotationChecksum>3197072870</param.AnnotationChecksum>
     <var.LegacyTarget />
     <var.MirrorOnOpen>false</var.MirrorOnOpen>
     <param.FixedPointEnabled>false</param.FixedPointEnabled>
     <var.redirectedInputTypeData />
     <var.DismissScreener>true</var.DismissScreener>
     <param.unifiedParamStorage />
-    <var.gc.lastOutputRoot>codegen\mex\findTimeToWallCollision</var.gc.lastOutputRoot>
+    <var.gc.lastOutputRoot>codegen\mex\mass3i8e</var.gc.lastOutputRoot>
     <var.gc.lastOutputType>MEX_FILE</var.gc.lastOutputType>
-    <var.gc.preBuildChecksum>3782675985</var.gc.preBuildChecksum>
+    <var.gc.preBuildChecksum>2815502153</var.gc.preBuildChecksum>
     <var.cfi.lastOutputRoot />
     <var.cfi.preBuildChecksum />
     <var.outdatedOnRestore>false</var.outdatedOnRestore>
-    <var.lastUserSourceChecksum>&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;&lt;checksum&gt;&lt;includedFiles&gt;&lt;file&gt;D:\Dropbox\GitHub\3D-concrete\misc\findTimeToWallCollision.m&lt;/file&gt;&lt;/includedFiles&gt;&lt;value&gt;3259265923&lt;/value&gt;&lt;/checksum&gt;</var.lastUserSourceChecksum>
-    <var.sourceSetState>&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;&lt;sourceModel&gt;&lt;primarySourceFiles&gt;&lt;file&gt;D:\Dropbox\GitHub\3D-concrete\misc\findTimeToWallCollision.m&lt;/file&gt;&lt;/primarySourceFiles&gt;&lt;fixedPointSourceFiles/&gt;&lt;fixedPointSourceRegistered&gt;false&lt;/fixedPointSourceRegistered&gt;&lt;fixedPointSourceSelected&gt;false&lt;/fixedPointSourceSelected&gt;&lt;/sourceModel&gt;</var.sourceSetState>
+    <var.lastUserSourceChecksum>&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;&lt;checksum&gt;&lt;includedFiles&gt;&lt;file&gt;D:\Dropbox\GitHub\3D-concrete\misc\mass3i8e.m&lt;/file&gt;&lt;/includedFiles&gt;&lt;value&gt;797931487&lt;/value&gt;&lt;/checksum&gt;</var.lastUserSourceChecksum>
+    <var.sourceSetState>&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;&lt;sourceModel&gt;&lt;primarySourceFiles&gt;&lt;file&gt;D:\Dropbox\GitHub\3D-concrete\misc\mass3i8e.m&lt;/file&gt;&lt;/primarySourceFiles&gt;&lt;fixedPointSourceFiles/&gt;&lt;fixedPointSourceRegistered&gt;false&lt;/fixedPointSourceRegistered&gt;&lt;fixedPointSourceSelected&gt;false&lt;/fixedPointSourceSelected&gt;&lt;/sourceModel&gt;</var.sourceSetState>
     <param.forceMexBuild>false</param.forceMexBuild>
     <param.configImportActive>false</param.configImportActive>
     <var.boundToGui>true</var.boundToGui>
-    <param.mex.outputfile>findTimeToWallCollision_mex</param.mex.outputfile>
-    <param.grt.outputfile>findTimeToWallCollision</param.grt.outputfile>
+    <param.mex.outputfile>mass3i8e_mex</param.mex.outputfile>
+    <param.grt.outputfile>mass3i8e</param.grt.outputfile>
     <param.artifact>option.target.artifact.mex</param.artifact>
-    <param.outputfile>${PROJECT_ROOT}\findTimeToWallCollision_mex.mexw64</param.outputfile>
+    <param.outputfile>${PROJECT_ROOT}\mass3i8e_mex.mexw64</param.outputfile>
     <param.EnableAutoExtrinsicCalls>true</param.EnableAutoExtrinsicCalls>
     <param.UsePreconditions>false</param.UsePreconditions>
     <param.FeatureFlags />
@@ -886,27 +886,22 @@
       <param.FixedPointUseDesignRanges />
     </unset>
     <fileset.entrypoints>
-      <file custom-data-expanded="false" value="${PROJECT_ROOT}\findTimeToWallCollision.m">
-        <Marker>1508931289559</Marker>
+      <file custom-data-expanded="false" value="${PROJECT_ROOT}\mass3i8e.m">
+        <Marker>1524657246595</Marker>
       </file>
     </fileset.entrypoints>
     <fileset.testbench />
     <fileset.inputtypes>
-      <file custom-data-expanded="false" value="${PROJECT_ROOT}\findTimeToWallCollision.m">
-        <Inputs fileName="findTimeToWallCollision.m" functionName="findTimeToWallCollision">
-          <Input Name="xnull" typeId="0" />
-          <Input Name="x" typeId="1" />
-          <Input Name="v1" typeId="1" />
-          <Input Name="v2" typeId="0" />
-          <Input Name="r" typeId="2" />
-          <Input Name="n" typeId="0" />
-          <Input Name="d" typeId="3" />
-          <Input Name="t" typeId="2" />
-          <Input Name="combinationsRows" typeId="2" />
+      <file custom-data-expanded="false" value="${PROJECT_ROOT}\mass3i8e.m">
+        <Inputs fileName="mass3i8e.m" functionName="mass3i8e">
+          <Input Name="ex" typeId="0" />
+          <Input Name="ey" typeId="0" />
+          <Input Name="ez" typeId="0" />
+          <Input Name="Cap" typeId="1" />
           <idpTable>
             <type typeId="0">
               <Class>double</Class>
-              <Size>6 x 3</Size>
+              <Size>1 x 8</Size>
               <Value />
               <InitialValue />
               <UserDefined>true</UserDefined>
@@ -914,23 +909,7 @@
             </type>
             <type typeId="1">
               <Class>double</Class>
-              <Size>:inf x 3</Size>
-              <Value />
-              <InitialValue />
-              <UserDefined>true</UserDefined>
-              <Complex>false</Complex>
-            </type>
-            <type typeId="2">
-              <Class>double</Class>
-              <Size>:inf x 1</Size>
-              <Value />
-              <InitialValue />
-              <UserDefined>true</UserDefined>
-              <Complex>false</Complex>
-            </type>
-            <type typeId="3">
-              <Class>double</Class>
-              <Size>:inf x 2</Size>
+              <Size>1 x 1</Size>
               <Value />
               <InitialValue />
               <UserDefined>true</UserDefined>
@@ -941,7 +920,7 @@
       </file>
     </fileset.inputtypes>
     <build-deliverables>
-      <file location="D:\Dropbox\GitHub\3D-concrete\misc" name="findTimeToWallCollision_mex.mexw64" optional="false">D:\Dropbox\GitHub\3D-concrete\misc\findTimeToWallCollision_mex.mexw64</file>
+      <file location="D:\Dropbox\GitHub\3D-concrete\misc" name="mass3i8e_mex.mexw64" optional="false">D:\Dropbox\GitHub\3D-concrete\misc\mass3i8e_mex.mexw64</file>
     </build-deliverables>
     <workflow />
     <matlab>

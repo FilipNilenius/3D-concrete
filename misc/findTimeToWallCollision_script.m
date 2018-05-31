@@ -1,7 +1,7 @@
 % FINDTIMETOWALLCOLLISION_SCRIPT   Generate MEX-function
 %  findTimeToWallCollision_mex from findTimeToWallCollision.
 % 
-% Script generated from project 'findTimeToWallCollision.prj' on 25-Oct-2017.
+% Script generated from project 'findTimeToWallCollision.prj' on 26-Feb-2018.
 % 
 % See also CODER, CODER.CONFIG, CODER.TYPEOF, CODEGEN.
 

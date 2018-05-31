@@ -1,7 +1,7 @@
 % QUADRATICEQUATION_SCRIPT   Generate MEX-function quadraticEquation_mex from
 %  quadraticEquation.
 % 
-% Script generated from project 'quadraticEquation.prj' on 25-Oct-2017.
+% Script generated from project 'quadraticEquation.prj' on 26-Feb-2018.
 % 
 % See also CODER, CODER.CONFIG, CODER.TYPEOF, CODEGEN.
 
